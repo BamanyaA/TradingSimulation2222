@@ -264,7 +264,11 @@ app.post("/api/admin/toggle-trade-action", async (req, res) => {
 });
 
 app.get("/api/admin/list-users", async (req, res) => {
-  res.json({ users: Object.values(localDb.users) });
+  try {
+    res.json({ users: Object.values(localDb.users) });
+  } catch (error) {
+    res.json({ users: Object.values(localDb.users) });
+  }
 });
 
 app.post("/api/users/upsert", async (req, res) => {
