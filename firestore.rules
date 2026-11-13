@@ -28,8 +28,16 @@ service cloud.firestore {
 
       allow update: if isAdmin() || (
         isOwner(userId) &&
-        // Prevent ordinary users from modifying protected sensitive fields (balance, role, isVerified, verificationStatus, tradeAction)
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'balance', 'isVerified', 'verificationStatus', 'tradeAction']))
+        // Prevent ordinary users from modifying role, balance, or tradeAction
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'balance', 'tradeAction'])) &&
+        // Allow updating verificationStatus to "pending" and isVerified to false (KYC submission), but forbid setting verified or rejected
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'isVerified']) ||
+          (
+            request.resource.data.verificationStatus == "pending" &&
+            request.resource.data.isVerified == false
+          )
+        )
       );
 
       allow delete: if isAdmin();
