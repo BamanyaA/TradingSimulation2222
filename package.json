@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
+    "@vercel/speed-insights": "^2.1.0",
     "clsx": "^2.1.1",
     "express": "^4.21.2",
     "firebase": "^12.12.1",

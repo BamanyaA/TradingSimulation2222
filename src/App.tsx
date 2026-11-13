@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { auth, db } from "./firebase";
 import { UserProfile } from "./types";
 
@@ -189,6 +190,7 @@ function AppContent() {
           boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
         }
       }} />
+      <SpeedInsights />
     </div>
   );
 }
