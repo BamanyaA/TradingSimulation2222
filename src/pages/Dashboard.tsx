@@ -463,51 +463,105 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     const { amount, seconds, symbol } = tradeDetailsRef.current;
 
     try {
-      const res = await fetch("/api/trade/settle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uid: user.uid,
-          amount,
-          seconds,
-          symbol
-        })
-      });
+      let success = false;
+      let data: any = null;
 
-      const contentType = res.headers.get("content-type");
-      if (!res.ok || !contentType || !contentType.includes("application/json")) {
-        const isWin = Math.random() > 0.5;
-        const profitVal = amount * 0.12;
-        setTradeResult({
-          isWin,
-          amount,
-          profit: profitVal,
-          percentage: isWin ? 12 : -12,
-          entryPrice: 4200.00,
-          exitPrice: 4220.00,
-          totalReturn: isWin ? amount + profitVal : Math.max(0, amount - profitVal),
-          seconds,
-          symbol,
-          timestamp: new Date().toLocaleString()
+      try {
+        const res = await fetch("/api/trade/settle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid: user.uid,
+            amount,
+            seconds,
+            symbol
+          })
         });
-        setShowTradeSuccess(true);
-        refreshProfile();
-        return;
+
+        const contentType = res.headers.get("content-type");
+        if (res.ok && contentType && contentType.includes("application/json")) {
+          data = await res.json();
+          if (data && data.success) {
+            success = true;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("API trade settle network fallback:", apiErr);
       }
 
-      const data = await res.json();
-      const { isWin, profit, percentage, entryPrice, exitPrice, totalReturn } = data;
+      let isWin = false;
+      let profitVal = 0;
+      let percentage = 5;
+      let entryPrice = 4200.00;
+      let exitPrice = 4220.00;
+      let totalReturn = 0;
+      let finalAmount = 0;
+
+      if (success && data) {
+        isWin = data.isWin;
+        profitVal = data.profit;
+        percentage = data.percentage;
+        entryPrice = data.entryPrice;
+        exitPrice = data.exitPrice;
+        totalReturn = data.totalReturn;
+        finalAmount = data.finalAmount;
+      } else {
+        // Robust client-side fallback to guarantee database balance synchronization
+        const userDocRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userDocRef);
+        const userData = userSnap.exists() ? userSnap.data() : { balance: profile?.balance || 0, tradeAction: true };
+        
+        isWin = userData.tradeAction !== undefined ? userData.tradeAction : Math.random() > 0.5;
+        const durationObj = [
+          { s: 30, r: 5 },
+          { s: 60, r: 12 },
+          { s: 90, r: 15 },
+          { s: 120, r: 22 },
+          { s: 180, r: 30 },
+          { s: 300, r: 40 }
+        ].find((d: any) => d.s === seconds);
+        const returnPercent = durationObj ? durationObj.r / 100 : 0.05;
+        const lossPercent = (seconds / 30) * 0.05;
+
+        finalAmount = isWin ? (amount * (1 + returnPercent)) : (amount * (1 - lossPercent));
+        profitVal = isWin ? (amount * returnPercent) : (amount * lossPercent);
+        entryPrice = 4200 + Math.random() * 100;
+        exitPrice = entryPrice * (isWin ? (1 + returnPercent) : (1 - lossPercent));
+        percentage = (isWin ? returnPercent : -lossPercent) * 100;
+        totalReturn = isWin ? (amount + profitVal) : Math.max(0, amount - profitVal);
+
+        const currentBalance = userData.balance || 0;
+        const updatedBalance = Math.max(0, currentBalance - amount + finalAmount);
+
+        // Update database balance immediately
+        await updateDoc(userDocRef, { balance: updatedBalance });
+
+        // Record transaction in transactions collection
+        const txRef = doc(collection(db, "transactions"));
+        await setDoc(txRef, {
+          id: txRef.id,
+          userId: user.uid,
+          userEmail: user.email || "",
+          type: "trade",
+          amount: isWin ? finalAmount : amount * lossPercent,
+          status: isWin ? "completed" : "failed",
+          symbol,
+          details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: " + (lossPercent * 100).toFixed(0) + "%"}`,
+          createdAt: serverTimestamp()
+        });
+      }
 
       refreshProfile();
+      if (fetchTransactions) fetchTransactions();
       toast.dismiss("trade");
       setTradeResult({ 
         isWin, 
         amount, 
-        profit,
-        percentage: percentage || (isWin ? 12 : -12),
+        profit: profitVal,
+        percentage: percentage || (isWin ? 5 : -5),
         entryPrice: entryPrice || 4200.00,
         exitPrice: exitPrice || 4220.00,
-        totalReturn: totalReturn || (isWin ? amount + profit : Math.max(0, amount - profit)),
+        totalReturn: totalReturn || (isWin ? amount + profitVal : Math.max(0, amount - profitVal)),
         seconds,
         symbol,
         timestamp: new Date().toLocaleString()
@@ -1539,7 +1593,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-2xl border-t border-slate-800 z-[40] pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-2xl border-t border-slate-800 z-[150] pb-safe">
         <div className="max-w-md mx-auto flex items-center justify-between px-6 py-3">
           {[
             { id: "home", icon: Home, label: "Home" },
@@ -2174,17 +2228,17 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
 
       <AnimatePresence>
         {showTradeSuccess && tradeResult && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="fixed inset-x-0 top-0 bottom-24 sm:bottom-0 z-[110] flex items-end sm:items-center justify-center p-4 sm:p-6 overflow-y-auto pointer-events-none">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowTradeSuccess(false)}
-              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+              className="absolute inset-0 bg-black/85 backdrop-blur-md pointer-events-auto"
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 40 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
               exit={{ scale: 0.9, opacity: 0, y: 40 }}
-              className="relative w-full max-w-sm bg-[#0f172a] border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl p-6 text-white text-left font-sans"
+              className="relative w-full max-w-sm bg-[#0f172a] border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl p-6 text-white text-left font-sans pointer-events-auto max-h-[calc(100vh-9rem)] overflow-y-auto my-auto"
             >
               <div className="flex justify-between items-center mb-6">
                 <div className="text-[11px] font-mono text-slate-400 font-bold">
