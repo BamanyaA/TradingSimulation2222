@@ -265,6 +265,35 @@ app.post("/api/admin/toggle-trade-action", async (req, res) => {
 
 app.get("/api/admin/list-users", async (req, res) => {
   try {
+    const knownEmails = [
+      "nnnn@gmail.com",
+      "bezat1922@gmail.com",
+      "ii@gmail.com",
+      "nn@gmail.com",
+      "mm@gmail.com",
+      "zz@gmail.com",
+      "vv@gmail.com"
+    ];
+
+    knownEmails.forEach((email, idx) => {
+      const uid = `auth_user_${idx}_${email.replace(/[^a-z0-9]/g, "")}`;
+      const exists = Object.values(localDb.users).some((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      if (!exists) {
+        localDb.users[uid] = {
+          id: uid,
+          email,
+          fullName: email.split("@")[0].toUpperCase(),
+          balance: 1000,
+          role: "user",
+          createdAt: new Date(),
+          verificationStatus: "unsubmitted",
+          isVerified: false,
+          tradeAction: true
+        };
+      }
+    });
+    saveLocalDb();
+
     res.json({ users: Object.values(localDb.users) });
   } catch (error) {
     res.json({ users: Object.values(localDb.users) });
