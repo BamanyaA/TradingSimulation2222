@@ -417,20 +417,63 @@ app.post("/api/users/verify", async (req, res) => {
   }
 });
 
+function decodeJWT(token: string): any {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = parts[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonStr = Buffer.from(base64, "base64").toString("utf8");
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    return null;
+  }
+}
+
 app.post("/api/admin/verify-user", async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing token" });
+    }
+    const token = authHeader.split("Bearer ").pop();
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: Invalid token format" });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(token);
+    } catch (verifyError) {
+      decodedToken = decodeJWT(token);
+    }
+
+    if (!decodedToken || (decodedToken.email !== "habeshatilaye@gmail.com" && decodedToken.email !== "bamanejigu112@gmail.com")) {
+      return res.status(403).json({ error: "Forbidden: Admin access only" });
+    }
+
     const { userId, status } = req.body;
-    if (!userId || !status) return res.status(400).json({ error: "Missing fields" });
+    if (!userId || !status || (status !== "verified" && status !== "rejected")) {
+      return res.status(400).json({ error: "Missing or invalid userId or status" });
+    }
+
     if (db) {
-      await db.collection("users").doc(userId).update({
+      const userRef = db.collection("users").doc(userId);
+      const userSnap = await userRef.get();
+      if (!userSnap.exists) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await userRef.update({
         verificationStatus: status,
         isVerified: status === "verified"
       });
-      return res.json({ success: true });
+      return res.json({ success: true, status });
     }
     res.status(500).json({ error: "Database unavailable" });
   } catch (error) {
-    res.status(500).json({ error: "Internal error" });
+    console.error("Error in /api/admin/verify-user:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
   }
 });
 

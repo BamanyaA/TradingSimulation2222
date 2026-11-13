@@ -269,9 +269,17 @@ export default function AdminDashboard() {
         body: JSON.stringify({ userId, status })
       });
 
+      const contentType = res.headers.get("content-type");
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to update verification status");
+        let errMessage = "Failed to update verification status";
+        if (contentType && contentType.includes("application/json")) {
+          const errData = await res.json();
+          errMessage = errData.error || errMessage;
+        } else {
+          const text = await res.text();
+          errMessage = text || `HTTP Error ${res.status}`;
+        }
+        throw new Error(errMessage);
       }
 
       toast.success(`User verification status: ${status}`);
