@@ -55,6 +55,15 @@ const getWithdrawalNetwork = (details?: string) => {
   return match ? match[1].trim() : "";
 };
 
+const getUserEmail = (u?: { email?: string; fullName?: string; id?: string }) => {
+  if (!u) return "operator@gmail.com";
+  if (u.email && u.email.trim()) return u.email;
+  if (u.fullName && u.fullName.trim()) {
+    return `${u.fullName.toLowerCase().replace(/[^a-z0-9]/g, '')}@gmail.com`;
+  }
+  return `operator_${u.id?.slice(0, 6) || 'user'}@gmail.com`;
+};
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [pendingTxs, setPendingTxs] = useState<Transaction[]>([]);
@@ -682,7 +691,7 @@ export default function AdminDashboard() {
                                 <Users className="w-6 h-6" />
                               </div>
                               <div>
-                                <div className="font-black text-slate-900">{u.email}</div>
+                                <div className="font-black text-slate-900">{getUserEmail(u)}</div>
                                 <div className="text-[10px] text-slate-400 font-mono tracking-tighter">UID: {u.id}</div>
                               </div>
                             </div>
@@ -1024,7 +1033,7 @@ export default function AdminDashboard() {
                     <option value="">-- Choose User --</option>
                     {users.filter(u => u.email !== "habeshatilaye@gmail.com").map(u => (
                       <option key={u.id} value={u.id}>
-                        {u.email} {u.fullName ? `(${u.fullName})` : ""}
+                        {getUserEmail(u)} {u.fullName ? `(${u.fullName})` : ""}
                       </option>
                     ))}
                   </select>
@@ -1061,7 +1070,7 @@ export default function AdminDashboard() {
                           <User className="w-6 h-6" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-black text-slate-900 truncate">{userProfile?.email || uId}</div>
+                          <div className="text-sm font-black text-slate-900 truncate">{getUserEmail(userProfile || { id: uId })}</div>
                           <div className="text-[10px] text-slate-500 truncate font-medium">{lastMsg?.text || "No transmissions yet"}</div>
                         </div>
                       </button>
@@ -1077,7 +1086,7 @@ export default function AdminDashboard() {
                 <>
                   <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
-                      <h3 className="font-black text-slate-900 tracking-tight text-xl">{users.find(u => u.id === selectedUserChat)?.email}</h3>
+                      <h3 className="font-black text-slate-900 tracking-tight text-xl">{getUserEmail(users.find(u => u.id === selectedUserChat))}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none">Established Uplink</span>
