@@ -19,14 +19,26 @@ const __dirname = path.dirname(__filename);
 let adminApp: admin.app.App | undefined = undefined;
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
-    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    adminApp = admin.initializeApp({
-      projectId: firebaseConfig.projectId,
-    });
-    console.log("Firebase Admin initialized successfully under project ID:", firebaseConfig.projectId);
+  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "tradingsimulation22" };
+  
+  if (!admin.apps.length) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        adminApp = admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          projectId: firebaseConfig.projectId || "tradingsimulation22"
+        });
+      } catch (saErr) {
+        adminApp = admin.initializeApp({ projectId: firebaseConfig.projectId || "tradingsimulation22" });
+      }
+    } else {
+      adminApp = admin.initializeApp({
+        projectId: firebaseConfig.projectId || "tradingsimulation22"
+      });
+    }
   } else {
-    console.warn("firebase-applet-config.json not found. Firebase Admin might not be pre-initialized.");
+    adminApp = admin.apps[0];
   }
 } catch (err) {
   console.error("Firebase Admin initialization error:", err);

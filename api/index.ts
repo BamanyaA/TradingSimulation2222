@@ -8,18 +8,29 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Initialize Firebase Admin SDK if config exists
+// Initialize Firebase Admin SDK with optional Service Account or Project ID
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath) && !admin.apps.length) {
-    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    admin.initializeApp({
-      projectId: firebaseConfig.projectId,
-    });
-  } else if (!admin.apps.length) {
-    admin.initializeApp({
-      projectId: "tradingsimulation22",
-    });
+  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "tradingsimulation22" };
+  
+  if (!admin.apps.length) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          projectId: firebaseConfig.projectId || "tradingsimulation22"
+        });
+        console.log("Firebase Admin initialized with service account credentials.");
+      } catch (saErr) {
+        console.warn("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY, falling back to projectId init:", saErr);
+        admin.initializeApp({ projectId: firebaseConfig.projectId || "tradingsimulation22" });
+      }
+    } else {
+      admin.initializeApp({
+        projectId: firebaseConfig.projectId || "tradingsimulation22"
+      });
+    }
   }
 } catch (err) {
   console.warn("Firebase Admin init warning on serverless:", err);
