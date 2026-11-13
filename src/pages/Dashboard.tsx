@@ -575,11 +575,16 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     
     const chatQ = query(
       collection(db, "support_messages"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "asc")
+      where("userId", "==", user.uid)
     );
     const chatUnsub = onSnapshot(chatQ, (snapshot) => {
-      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportMessage)));
+      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportMessage));
+      msgs.sort((a: any, b: any) => {
+        const tA = a.createdAt?.toMillis?.() || new Date(a.createdAt || 0).getTime();
+        const tB = b.createdAt?.toMillis?.() || new Date(b.createdAt || 0).getTime();
+        return tA - tB;
+      });
+      setMessages(msgs);
     }, (error) => handleFirestoreError(error, OperationType.GET, "support_messages"));
 
     return () => {
