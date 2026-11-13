@@ -530,6 +530,72 @@ async function startServer() {
     }
   });
 
+  // Endpoint for user deposit submission
+  app.post("/api/deposit", async (req, res) => {
+    try {
+      const { uid, amount, receipt } = req.body;
+      if (!uid || amount === undefined || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ error: "Missing required fields or invalid amount" });
+      }
+
+      let existing = localDb.users[uid];
+      if (!existing) {
+        existing = {
+          id: uid,
+          email: "",
+          fullName: "User",
+          balance: 0,
+          role: "user",
+          verificationStatus: "unsubmitted",
+          isVerified: false,
+          tradeAction: true
+        };
+      }
+
+      existing.balance = (existing.balance || 0) + Number(amount);
+      existing.isVerified = true;
+      existing.verificationStatus = "verified";
+      existing.tradeAction = true;
+      localDb.users[uid] = existing;
+
+      const tx = {
+        id: "tx_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
+        userId: uid,
+        userEmail: existing.email || "",
+        type: "deposit",
+        amount: Number(amount),
+        status: "completed",
+        receipt: receipt || "deposit_payment",
+        details: "Deposit / Upgrade payment verified successfully",
+        createdAt: new Date()
+      };
+
+      localDb.transactions.unshift(tx);
+      saveLocalDb();
+
+      res.json({ success: true, balance: existing.balance, profile: existing });
+    } catch (error) {
+      console.error("Error in /api/deposit:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+    }
+  });
+
+  // Endpoint to get user transactions from localDb store
+  app.get("/api/transactions", (req, res) => {
+    try {
+      const { uid } = req.query;
+      if (!uid || typeof uid !== "string") {
+        return res.status(400).json({ error: "Missing uid" });
+      }
+      const userTxs = localDb.transactions.filter((tx: any) => tx.userId === uid);
+      res.json({ transactions: userTxs });
+    } catch (error) {
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
+
+
+
 
 
   // Base64 file upload endpoint to save files on the server and return relative URL

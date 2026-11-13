@@ -525,17 +525,23 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     }
   };
 
-  useEffect(() => {
-    const q = query(
-      collection(db, "transactions"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch(`/api/transactions?uid=${user.uid}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.transactions) {
+          setTransactions(data.transactions);
+        }
+      }
+    } catch (err) {
+      console.warn("Transactions fetch error:", err);
+    }
+  };
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
-      setTransactions(txs);
-    }, (error) => handleFirestoreError(error, OperationType.GET, "transactions"));
+  useEffect(() => {
+    fetchTransactions();
+    const interval = setInterval(fetchTransactions, 3000);
 
     const fetchSettings = async () => {
       try {
@@ -561,7 +567,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     }, (error) => handleFirestoreError(error, OperationType.GET, "support_messages"));
 
     return () => {
-      unsubscribe();
+      clearInterval(interval);
       chatUnsub();
     };
   }, [user.uid]);
@@ -726,28 +732,27 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
   const handleSubmitDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(depositAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid deposit amount");
+      return;
+    }
 
     setIsSubmittingDeposit(true);
     try {
-      // Create completed transaction and instantly credit balance for full access
-      await addDoc(collection(db, "transactions"), {
-        userId: user.uid,
-        userEmail: user.email || "",
-        type: "deposit",
-        amount: amount,
-        status: "completed",
-        receipt: receiptFile || "instant_upgrade_payment",
-        details: "Deposit / Upgrade payment verified successfully",
-        createdAt: serverTimestamp(),
+      const res = await fetch("/api/deposit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          amount,
+          receipt: receiptFile || "deposit_receipt"
+        })
       });
 
-      await updateDoc(doc(db, "users", user.uid), {
-        balance: increment(amount),
-        isVerified: true,
-        verificationStatus: "verified",
-        tradeAction: true
-      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Deposit submission failed");
+      }
 
       setDepositAmount("");
       setReceiptFile(null);
@@ -756,11 +761,6 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
       if (refreshProfile) refreshProfile();
     } catch (error) {
       toast.error("Failed to process payment: " + (error instanceof Error ? error.message : "Unknown error"));
-      try {
-        handleFirestoreError(error, OperationType.WRITE, "transactions");
-      } catch (e) {
-        console.error("Deposit submit sync error:", e);
-      }
     } finally {
       setIsSubmittingDeposit(false);
     }
@@ -1762,42 +1762,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
                 </div>
               </div>
 
-              <div className="p-4 bg-indigo-50 border-t border-b border-indigo-100 flex flex-col gap-2">
-                <button 
-                  onClick={() => {
-                    setDepositAmount("30");
-                    // Automatically submit $30 instant payment
-                    setTimeout(async () => {
-                      try {
-                        await addDoc(collection(db, "transactions"), {
-                          userId: user.uid,
-                          userEmail: user.email || "",
-                          type: "deposit",
-                          amount: 30,
-                          status: "completed",
-                          receipt: "instant_30_usd_payment",
-                          details: "Instant $30 Upgrade Payment Verified",
-                          createdAt: serverTimestamp(),
-                        });
-                        await updateDoc(doc(db, "users", user.uid), {
-                          balance: increment(30),
-                          isVerified: true,
-                          verificationStatus: "verified",
-                          tradeAction: true
-                        });
-                        setShowDepositModal(false);
-                        toast.success("$30 Upgrade Payment Successful! Full Access Unlocked Instantly.");
-                        if (refreshProfile) refreshProfile();
-                      } catch (err) {
-                        toast.error("Error processing upgrade: " + (err instanceof Error ? err.message : String(err)));
-                      }
-                    }, 100);
-                  }}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2"
-                >
-                  ⚡ I Already Paid $30 - Instant Unlock & Credit
-                </button>
-              </div>
+
 
               <button 
                 onClick={handleSubmitDeposit}
