@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { User, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { UserProfile, Transaction, PlatformSettings, SupportMessage, FirestoreErrorInfo } from "../types";
 import { db, auth, handleFirestoreError, OperationType } from "../firebase";
+import PriceTicker from "../components/PriceTicker";
 import { 
   collection, 
   query, 
@@ -422,7 +423,18 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
   const [showTradeConfirm, setShowTradeConfirm] = useState(false);
   const [showOptionModal, setShowOptionModal] = useState(false);
   const [showTradeSuccess, setShowTradeSuccess] = useState(false);
-  const [tradeResult, setTradeResult] = useState<{ isWin: boolean; amount: number; profit: number } | null>(null);
+  const [tradeResult, setTradeResult] = useState<{ 
+    isWin: boolean; 
+    amount: number; 
+    profit: number; 
+    percentage: number; 
+    entryPrice: number; 
+    exitPrice: number; 
+    totalReturn: number; 
+    seconds: number;
+    symbol: string;
+    timestamp: string;
+  } | null>(null);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [selectedDepositCoin, setSelectedDepositCoin] = useState<keyof PlatformSettings>("btc_address");
   const [showChat, setShowChat] = useState(false);
@@ -449,64 +461,40 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
   const finalizeTrade = async () => {
     if (!tradeDetailsRef.current || !user) return;
     const { amount, seconds, symbol } = tradeDetailsRef.current;
-    
-    // Determine win state based on admin control. Fetch freshest settings directly to bypass any lag
-    let isWin = Math.random() > 0.5;
-    try {
-      const freshDoc = await getDoc(doc(db, "users", user.uid));
-      if (freshDoc.exists()) {
-        const freshData = freshDoc.data();
-        if (freshData.tradeAction !== undefined) {
-          isWin = freshData.tradeAction;
-        }
-      } else if (profile?.tradeAction !== undefined) {
-        isWin = profile.tradeAction;
-      }
-    } catch (e) {
-      console.warn("Failed to retrieve fresher tradeAction control, falling back to cached profile.", e);
-      if (profile?.tradeAction !== undefined) {
-        isWin = profile.tradeAction;
-      }
-    }
-
-    // Get return percentage based on duration
-    const durationObj = ASSET_DURATIONS.find(d => d.s === seconds);
-    const returnPercent = durationObj ? durationObj.r / 100 : 0.03;
-    
-    // Loss percentage: 5% per 30s as requested
-    const lossPercent = (seconds / 30) * 0.05;
 
     try {
-      // Deduct the initial amount first (the investment)
-      await updateDoc(doc(db, "users", user.uid), {
-        balance: increment(-amount)
+      const res = await fetch("/api/trade/settle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          amount,
+          seconds,
+          symbol
+        })
       });
 
-      const finalAmount = isWin 
-        ? (amount * (1 + returnPercent)) 
-        : (amount * (1 - lossPercent));
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Trade settlement failed");
+      }
 
-      await addDoc(collection(db, "transactions"), {
-        userId: user.uid,
-        userEmail: user.email || "",
-        type: "trade",
-        amount: isWin ? finalAmount : amount * lossPercent,
-        status: isWin ? "completed" : "failed",
-        symbol: symbol,
-        details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: " + (lossPercent * 100).toFixed(0) + "%"}`,
-        createdAt: serverTimestamp(),
-      });
+      const data = await res.json();
+      const { isWin, profit, percentage, entryPrice, exitPrice, totalReturn } = data;
 
-      // Return the finalAmount (Capital + Profit if Win, Capital - Partial Loss if Loss)
-      await updateDoc(doc(db, "users", user.uid), {
-        balance: increment(finalAmount)
-      });
-
+      refreshProfile();
       toast.dismiss("trade");
       setTradeResult({ 
         isWin, 
         amount, 
-        profit: isWin ? (amount * returnPercent) : (amount * lossPercent)
+        profit,
+        percentage: percentage || (isWin ? 12 : -12),
+        entryPrice: entryPrice || 4200.00,
+        exitPrice: exitPrice || 4220.00,
+        totalReturn: totalReturn || (isWin ? amount + profit : Math.max(0, amount - profit)),
+        seconds,
+        symbol,
+        timestamp: new Date().toLocaleString()
       });
       setShowTradeSuccess(true);
       
@@ -527,19 +515,13 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
           }
         );
       }
-      refreshProfile();
-      setIsTrading(false);
-      setTimeLeft(null);
-      tradeDetailsRef.current = null;
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, "trade-sync");
       toast.dismiss("trade");
-      toast.error("Trade synchronization failed");
-      setIsTrading(false);
-      setTimeLeft(null);
-      tradeDetailsRef.current = null;
+      toast.error("Transaction synchronization failed: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsTrading(false);
+      setTimeLeft(null);
+      tradeDetailsRef.current = null;
     }
   };
 
@@ -649,44 +631,28 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
  
      setIsSubmittingVerification(true);
      try {
-       const userRef = doc(db, "users", user.uid);
-       const isNewProfile = !profile;
- 
-       if (isNewProfile) {
-         // If user record doesn't exist, create it with all mandatory initial fields expected by the create rule
-         const isAdminEmail = user.email === "habeshatilaye@gmail.com";
-         await setDoc(userRef, {
-           email: user.email || "",
-           fullName: full_name,
-           address: address_val,
-           phoneNumber: phone_number,
-           verificationDoc: verificationDoc,
-           balance: 0,
-           role: isAdminEmail ? "admin" : "user",
-           createdAt: serverTimestamp(),
-           verificationStatus: "pending",
-           isVerified: false
-         });
-       } else {
-         // Existing profile update
-         await updateDoc(userRef, {
+       const res = await fetch("/api/users/verify", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+           uid: user.uid,
            fullName: full_name,
            phoneNumber: phone_number,
            address: address_val,
-           verificationDoc: verificationDoc,
-           verificationStatus: "pending"
-         });
+           verificationDoc: verificationDoc
+         })
+       });
+
+       if (!res.ok) {
+         const errData = await res.json();
+         throw new Error(errData.error || "Failed to submit verification");
        }
+
        toast.success("Verification submitted for review!");
        setShowVerificationForm(false);
        refreshProfile();
      } catch (error) {
        toast.error("Failed to submit: " + (error instanceof Error ? error.message : "Unknown error"));
-       try {
-         handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
-       } catch (e) {
-         console.error("Verification submit sync error:", e);
-       }
      } finally {
        setIsSubmittingVerification(false);
      }
@@ -1187,6 +1153,9 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
 
   const renderMarket = () => (
     <div className="space-y-6 pb-64 animate-in fade-in duration-500">
+      <div className="mb-4">
+        <PriceTicker />
+      </div>
       <div className="glass-card rounded-[2.5rem] p-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
@@ -1359,7 +1328,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
           </div>
           
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-4xl font-display font-black text-slate-900 mb-2 tracking-tight">{profile?.fullName || "Gammix Trader"}</h2>
+            <h2 className="text-4xl font-display font-black text-slate-900 mb-2 tracking-tight">{profile?.fullName || (user.email ? user.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") : "User")}</h2>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                <div className="px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Node ID: {user?.uid.slice(0, 12)}
@@ -1412,7 +1381,6 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
           <div className="glass-card rounded-[2.5rem] p-8">
              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Security & Identity</h3>
              <div className="space-y-4">
-                {(!profile?.verificationStatus || profile?.verificationStatus === "rejected" || profile?.verificationStatus === "unsubmitted") && (
                   <button 
                     onClick={() => {
                       setFullName(profile?.fullName || "");
@@ -1428,13 +1396,24 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
                          <ShieldCheck className="w-6 h-6" />
                       </div>
                       <div>
-                         <div className="font-bold text-slate-900 text-sm">Verify Identity</div>
-                         <div className="text-[10px] text-slate-400 font-medium">Unlock full platform capabilities</div>
+                         <div className="font-bold text-slate-900 text-sm">Identity Verification</div>
+                         <div className="text-[10px] text-slate-400 font-medium">
+                           Status: <span className={cn(
+                             "font-black uppercase",
+                             profile?.verificationStatus === "verified" ? "text-emerald-600" :
+                             profile?.verificationStatus === "pending" ? "text-amber-600" :
+                             profile?.verificationStatus === "rejected" ? "text-rose-600" : "text-slate-500"
+                           )}>{profile?.verificationStatus || "Unverified"}</span>
+                         </div>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+                        {profile?.verificationStatus === "verified" ? "Verified" : profile?.verificationStatus === "pending" ? "Reviewing" : "Verify Now"}
+                      </span>
+                      <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </button>
-                )}
                 
                 <button 
                   onClick={() => setShowChangePasswordModal(true)}
@@ -2190,63 +2169,73 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowTradeSuccess(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ scale: 0.5, opacity: 0, y: 100 }} 
+              initial={{ scale: 0.9, opacity: 0, y: 40 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.5, opacity: 0, y: 100 }}
-              className="relative w-full max-w-sm bg-white rounded-[40px] overflow-hidden shadow-2xl p-10 text-center"
+              exit={{ scale: 0.9, opacity: 0, y: 40 }}
+              className="relative w-full max-w-sm bg-[#0f172a] border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl p-6 text-white text-left font-sans"
             >
-              <div className={cn(
-                "w-24 h-24 mx-auto mb-8 rounded-[32px] flex items-center justify-center shadow-2xl transform -rotate-6",
-                tradeResult.isWin ? "bg-green-500 shadow-green-200" : "bg-red-500 shadow-red-200"
-              )}>
-                {tradeResult.isWin ? (
-                  <Trophy className="w-12 h-12 text-white" />
-                ) : (
-                  <TrendingDown className="w-12 h-12 text-white" />
-                )}
+              <div className="flex justify-between items-center mb-6">
+                <div className="text-[11px] font-mono text-slate-400 font-bold">
+                  {tradeResult.timestamp || new Date().toLocaleString()}
+                </div>
+                <button onClick={() => setShowTradeSuccess(false)} className="p-1 hover:bg-slate-800 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
               </div>
 
-              <h3 className={cn(
-                "text-3xl font-black mb-2 tracking-tighter",
-                tradeResult.isWin ? "text-green-600" : "text-red-600"
-              )}>
-                {tradeResult.isWin ? "Congratulations 🚀💰🎉" : "Sorry 📉😟⚠️"}
-              </h3>
-              <p className="text-gray-500 font-bold text-lg mb-8 uppercase tracking-wide">
-                {tradeResult.isWin ? "You win and more for win." : "you lose be careful with your capital"}
-              </p>
+              <div className="text-center mb-6">
+                <div className={cn(
+                  "text-3xl font-mono font-black tracking-tight",
+                  tradeResult.isWin ? "text-emerald-400" : "text-rose-400"
+                )}>
+                  {tradeResult.isWin ? "+" : "-"}${Math.abs(tradeResult.profit || tradeResult.amount).toFixed(2)} USDT
+                </div>
+                <div className={cn(
+                  "text-sm font-black font-mono mt-1",
+                  tradeResult.isWin ? "text-emerald-500" : "text-rose-500"
+                )}>
+                  {tradeResult.isWin ? "+" : ""}{tradeResult.percentage?.toFixed(2) || "0.00"}%
+                </div>
+              </div>
 
-              <div className="bg-gray-50 rounded-3xl p-6 mb-8 space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Investment</span>
-                  <span className="text-gray-900 font-black font-mono">{formatCurrency(tradeResult.amount)}</span>
+              <div className="bg-[#1e293b]/70 border border-slate-800 rounded-2xl p-5 mb-6 space-y-3 font-mono text-xs">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-1 border-b border-slate-800">
+                  {ALL_ASSETS.find(a => a.symbol === tradeResult.symbol)?.name?.toUpperCase() || "GOLD"} TRADE DETAILS
                 </div>
-                <div className="flex justify-between items-center py-3 border-y border-gray-100">
-                  <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Market Profit</span>
-                  <span className={cn("font-black font-mono text-xl", tradeResult.isWin ? "text-green-500" : "text-red-500")}>
-                    {tradeResult.isWin ? "+" : "-"}{formatCurrency(tradeResult.profit || tradeResult.amount)}
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Trade Amount</span>
+                  <span className="text-white font-bold">${tradeResult.amount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Profit</span>
+                  <span className={cn("font-bold", tradeResult.isWin ? "text-emerald-400" : "text-rose-400")}>
+                    {tradeResult.isWin ? "+" : "-"}${Math.abs(tradeResult.profit || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Status</span>
-                  <span className={cn(
-                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter",
-                    tradeResult.isWin ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-                  )}>
-                    Settled
-                  </span>
+                  <span className="text-slate-400">Entry Price</span>
+                  <span className="text-white font-bold">${tradeResult.entryPrice?.toFixed(2) || "0.00"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Exit Price</span>
+                  <span className="text-white font-bold">${tradeResult.exitPrice?.toFixed(2) || "0.00"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Duration</span>
+                  <span className="text-white font-bold">{tradeResult.seconds}s</span>
+                </div>
+                <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-300 font-bold uppercase tracking-wider text-[11px]">Total Return</span>
+                  <span className="text-white font-black text-sm">${tradeResult.totalReturn?.toFixed(2) || "0.00"}</span>
                 </div>
               </div>
 
               <button 
                 onClick={() => setShowTradeSuccess(false)}
-                className={cn(
-                  "w-full py-5 text-white font-black rounded-2xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest",
-                  tradeResult.isWin ? "bg-green-600 hover:bg-green-700 shadow-green-100" : "bg-red-600 hover:bg-red-700 shadow-red-100"
-                )}
+                className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black rounded-xl shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest"
               >
                 Close Receipt
               </button>

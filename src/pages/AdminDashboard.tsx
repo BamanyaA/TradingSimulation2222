@@ -208,84 +208,91 @@ export default function AdminDashboard() {
 
   const handleUpdateBalance = async (userId: string, delta: number) => {
     try {
-      await updateDoc(doc(db, "users", userId), {
-        balance: increment(delta)
+      const res = await fetch("/api/admin/update-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, amount: Math.abs(delta), mode: delta < 0 ? 'subtract' : 'add' })
       });
+      if (!res.ok) throw new Error("Failed to update balance");
+      const data = await res.json();
       toast.success("Balance updated");
-      // Clear custom amount field
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: data.balance } : u));
       setCustomAmounts(prev => ({ ...prev, [userId]: "" }));
     } catch (error) {
       toast.error("Failed to update balance: " + (error instanceof Error ? error.message : "Unknown error"));
-      try {
-        handleFirestoreError(error, OperationType.UPDATE, `users/${userId}`);
-      } catch (e) {
-        console.error("Balance update sync error:", e);
-      }
     }
   };
 
   const handleSetBalance = async (userId: string, amount: number) => {
     try {
-      await updateDoc(doc(db, "users", userId), {
-        balance: amount
+      const res = await fetch("/api/admin/update-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, amount, mode: 'set' })
       });
+      if (!res.ok) throw new Error("Failed to set balance");
+      const data = await res.json();
       toast.success(`Balance set to ${formatCurrency(amount)}`);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: data.balance } : u));
       setCustomAmounts(prev => ({ ...prev, [userId]: "" }));
     } catch (error) {
       toast.error("Failed to set balance: " + (error instanceof Error ? error.message : "Unknown error"));
-      try {
-        handleFirestoreError(error, OperationType.UPDATE, `users/${userId}`);
-      } catch (e) {
-        console.error("Balance set sync error:", e);
-      }
     }
   };
 
   const handleVerifyUser = async (userId: string, status: "verified" | "rejected") => {
     try {
-      await updateDoc(doc(db, "users", userId), {
-        verificationStatus: status,
-        isVerified: status === "verified"
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/admin/verify-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId, status })
       });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to update verification status");
+      }
+
       toast.success(`User verification status: ${status}`);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, verificationStatus: status, isVerified: status === "verified" } : u));
     } catch (error) {
       toast.error("Failed to update verification status: " + (error instanceof Error ? error.message : "Unknown error"));
-      try {
-        handleFirestoreError(error, OperationType.UPDATE, `users/${userId}`);
-      } catch (e) {
-        console.error("Verification update sync error:", e);
-      }
     }
   };
 
   const handleToggleRole = async (user: UserProfile) => {
     try {
-      const newRole = user.role === "admin" ? "user" : "admin";
-      await updateDoc(doc(db, "users", user.id), { role: newRole });
-      toast.success(`User role updated to ${newRole}`);
+      const res = await fetch("/api/admin/toggle-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id })
+      });
+      if (!res.ok) throw new Error("Failed to update role");
+      const data = await res.json();
+      toast.success(`User role updated to ${data.role}`);
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: data.role } : u));
     } catch (error) {
       toast.error("Failed to update role: " + (error instanceof Error ? error.message : "Unknown error"));
-      try {
-        handleFirestoreError(error, OperationType.UPDATE, `users/${user.id}`);
-      } catch (e) {
-        console.error("Role update sync error:", e);
-      }
     }
   };
 
   const handleToggleTradeAction = async (user: UserProfile) => {
     try {
-      const currentAction = user.tradeAction ?? true; // Default to true if not set
-      const nextAction = !currentAction;
-      await updateDoc(doc(db, "users", user.id), { tradeAction: nextAction });
-      toast.success(`User trade outcome set to ${nextAction ? "PROFIT" : "LOSS"}`);
+      const res = await fetch("/api/admin/toggle-trade-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id })
+      });
+      if (!res.ok) throw new Error("Failed to update trade action");
+      const data = await res.json();
+      toast.success(`User trade outcome set to ${data.tradeAction ? "PROFIT" : "LOSS"}`);
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, tradeAction: data.tradeAction } : u));
     } catch (error) {
       toast.error("Failed to update trade action: " + (error instanceof Error ? error.message : "Unknown error"));
-      try {
-        handleFirestoreError(error, OperationType.UPDATE, `users/${user.id}`);
-      } catch (e) {
-        console.error("Trade action update sync error:", e);
-      }
     }
   };
 

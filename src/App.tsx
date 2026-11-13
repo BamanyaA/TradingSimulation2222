@@ -27,52 +27,32 @@ function AppContent() {
 
   const fetchProfile = async (uid: string) => {
     try {
+      const res = await fetch(`/api/users/profile?uid=${uid}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile) {
+          setProfile({ id: uid, ...data.profile } as UserProfile);
+          return;
+        }
+      }
       const docRef = doc(db, "users", uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setProfile({ id: docSnap.id, ...docSnap.data() } as UserProfile);
-      } else if (auth.currentUser) {
-        const user = auth.currentUser;
-        const isAdminEmail = user.email === "habeshatilaye@gmail.com";
-        const newProfile = {
-          email: user.email || "",
-          fullName: user.displayName || "Trader",
-          address: "",
-          phoneNumber: user.phoneNumber || "",
-          verificationDoc: "",
-          balance: 0,
-          role: isAdminEmail ? "admin" : "user",
-          createdAt: new Date(),
-          verificationStatus: "verified",
-          isVerified: true,
-          tradeAction: true
-        };
-        try {
-          await setDoc(docRef, newProfile);
-          setProfile({ id: uid, ...newProfile } as any);
-        } catch (err) {
-          setProfile({ id: uid, ...newProfile } as any);
-        }
       }
     } catch (err) {
-      const user = auth.currentUser;
-      const isAdminEmail = user?.email === "habeshatilaye@gmail.com";
-      setProfile({
-        id: uid,
-        email: user?.email || "",
-        fullName: user?.displayName || "Trader",
-        address: "",
-        phoneNumber: "",
-        verificationDoc: "",
-        balance: 0,
-        role: isAdminEmail ? "admin" : "user",
-        createdAt: new Date(),
-        verificationStatus: "verified",
-        isVerified: true,
-        tradeAction: true
-      } as any);
+      console.warn("Profile fetch error:", err);
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchProfile(user.uid);
+    const interval = setInterval(() => {
+      fetchProfile(user.uid);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     let profileUnsub: (() => void) | null = null;
@@ -92,17 +72,18 @@ function AppContent() {
               setProfile({ id: docSnap.id, ...docSnap.data() } as UserProfile);
             } else {
               const isAdminEmail = firebaseUser.email === "habeshatilaye@gmail.com";
+              const cleanName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") : "User");
               const newProfile = {
                 email: firebaseUser.email || "",
-                fullName: firebaseUser.displayName || "Trader",
+                fullName: cleanName,
                 address: "",
                 phoneNumber: firebaseUser.phoneNumber || "",
                 verificationDoc: "",
                 balance: 0,
                 role: isAdminEmail ? "admin" : "user",
                 createdAt: new Date(),
-                verificationStatus: "verified",
-                isVerified: true,
+                verificationStatus: isAdminEmail ? "verified" : "unsubmitted",
+                isVerified: isAdminEmail,
                 tradeAction: true
               };
               setProfile({ id: firebaseUser.uid, ...newProfile } as any);
@@ -111,18 +92,19 @@ function AppContent() {
           }, (err) => {
             console.warn("Profile listener graceful fallback active:", err.message);
             const isAdminEmail = firebaseUser.email === "habeshatilaye@gmail.com";
+            const cleanName = firebaseUser.email ? firebaseUser.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") : "User";
             setProfile({
               id: firebaseUser.uid,
               email: firebaseUser.email || "",
-              fullName: firebaseUser.displayName || "Trader",
+              fullName: cleanName,
               address: "",
               phoneNumber: "",
               verificationDoc: "",
               balance: 0,
               role: isAdminEmail ? "admin" : "user",
               createdAt: new Date(),
-              verificationStatus: "verified",
-              isVerified: true,
+              verificationStatus: isAdminEmail ? "verified" : "unsubmitted",
+              isVerified: isAdminEmail,
               tradeAction: true
             } as any);
           });
@@ -163,7 +145,6 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-slate-50 transition-colors duration-500 flex flex-col">
       <Navbar user={user} profile={profile} />
-      <PriceTicker />
       <main className="flex-1">
         <Suspense fallback={
           <div className="min-h-[60vh] flex items-center justify-center">
