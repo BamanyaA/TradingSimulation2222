@@ -2,8 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User } from "firebase/auth";
 import { auth } from "../firebase";
 import { UserProfile } from "../types";
-import { LogOut, LayoutDashboard, Settings, TrendingUp } from "lucide-react";
-import { cn } from "../lib/utils";
+import { LogOut, LayoutDashboard, TrendingUp } from "lucide-react";
 
 interface NavbarProps {
   user: User | null;
@@ -20,50 +19,51 @@ export default function Navbar({ user, profile }: NavbarProps) {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 w-full border-b border-slate-800 bg-[#0f172a]/95 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to={user ? (isAdmin ? "/admin" : "/dashboard") : "/"} className="flex items-center gap-2 group">
-          <div className="p-2 bg-indigo-600 rounded-lg group-hover:bg-indigo-500 transition-colors">
-            <TrendingUp className="w-6 h-6 text-white" />
+        <Link to={user ? (isAdmin ? "/admin" : "/dashboard") : "/"} className="flex items-center gap-3 group">
+          <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl group-hover:scale-105 transition-all shadow-lg shadow-indigo-500/30">
+            <TrendingUp className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 italic">GAMMIX<span className="text-indigo-600">TRADING</span></span>
+          <span className="text-xl font-black tracking-tight text-white italic">GAMMIX<span className="text-indigo-400">TRADING</span></span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
           {!user && (
             <>
-              <Link to="/" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">Home</Link>
-              <Link to="/about" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">About</Link>
+              <Link to="/" className="text-sm font-bold text-slate-300 hover:text-indigo-400 transition-colors">Home</Link>
+              <Link to="/about" className="text-sm font-bold text-slate-300 hover:text-indigo-400 transition-colors">About</Link>
             </>
           )}
         </div>
 
         <div className="flex items-center gap-4">
           {user?.email === "habeshatilaye@gmail.com" && !profile?.role && (
-            <span className="text-[10px] bg-yellow-50 text-yellow-600 px-2 py-1 rounded border border-yellow-100">Syncing Admin...</span>
+            <span className="text-[10px] bg-yellow-500/10 text-yellow-400 px-2.5 py-1 rounded-full border border-yellow-500/30 font-bold">Syncing Admin...</span>
           )}
           {user ? (
             <div className="flex items-center gap-4">
               <Link 
                 to={isAdmin ? "/admin" : "/dashboard"} 
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-900 bg-slate-200 hover:bg-slate-300 rounded-full transition-colors"
+                className="hidden sm:flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-lg shadow-indigo-500/20"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 {isAdmin ? "Admin Panel" : "Dashboard"}
               </Link>
               <button 
                 onClick={handleLogout}
-                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-200 rounded-full transition-all"
+                className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-all"
+                title="Logout"
               >
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link to="/login" className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">
+            <div className="flex items-center gap-3">
+              <Link to="/login" className="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-colors">
                 Login
               </Link>
-              <Link to="/register" className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-full transition-all shadow-lg shadow-indigo-100">
+              <Link to="/register" className="px-6 py-3 text-xs font-black uppercase tracking-widest text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl transition-all shadow-xl shadow-indigo-500/30">
                 Start Trading
               </Link>
             </div>

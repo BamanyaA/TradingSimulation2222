@@ -544,7 +544,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
           userEmail: user.email || "",
           type: "trade",
           amount: isWin ? finalAmount : amount * lossPercent,
-          status: isWin ? "completed" : "failed",
+          status: "completed",
           symbol,
           details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: " + (lossPercent * 100).toFixed(0) + "%"}`,
           createdAt: serverTimestamp()
@@ -1581,8 +1581,8 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
   );
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative">
-      <div className="flex-1 flex flex-col pb-64">
+    <div className="min-h-screen bg-[#111c38] text-slate-100 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative">
+      <div className="flex-1 flex flex-col pb-32">
         <main className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {activeTab === "home" && renderHome()}
           {activeTab === "market" && renderMarket()}
@@ -1592,9 +1592,9 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
         </main>
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Footer / Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-2xl border-t border-slate-800 z-[150] pb-safe">
-        <div className="max-w-md mx-auto flex items-center justify-between px-6 py-3">
+        <div className="max-w-md md:max-w-4xl lg:max-w-5xl mx-auto flex items-center justify-between px-6 sm:px-16 py-3.5">
           {[
             { id: "home", icon: Home, label: "Home" },
             { id: "market", icon: TrendingUp, label: "Markets" },
@@ -1606,7 +1606,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}
               className={cn(
-                "relative flex flex-col items-center gap-1 py-1 px-3 transition-all duration-300 active:scale-95",
+                "relative flex flex-col items-center gap-1 py-1 px-4 sm:px-8 transition-all duration-300 active:scale-95",
                 item.isSpecial ? "-mt-7" : "",
                 activeTab === item.id ? (item.isSpecial ? "text-white" : "text-indigo-400") : "text-slate-400 hover:text-slate-200"
               )}
@@ -1618,7 +1618,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
               ) : (
                 <item.icon className={cn("w-6 h-6 transition-transform duration-300", activeTab === item.id ? "scale-110" : "")} />
               )}
-              <span className={cn("text-[9px] font-black uppercase tracking-widest", item.isSpecial ? "text-orange-400 mt-1" : "")}>{item.label}</span>
+              <span className={cn("text-[10px] font-black uppercase tracking-widest", item.isSpecial ? "text-orange-400 mt-1" : "")}>{item.label}</span>
               {!item.isSpecial && activeTab === item.id && (
                 <motion.div 
                   layoutId="activeTabUnderline"
@@ -1774,21 +1774,21 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
                     <label className="text-sm font-medium text-gray-700 block mb-3">Choice of Token</label>
                     <div className="grid grid-cols-3 gap-2 mb-4">
                       {([
-                        { id: "btc_address", name: "BTC" },
-                        { id: "eth_address", name: "ETH" },
-                        { id: "sol_address", name: "SOL" },
-                        { id: "bnb_address", name: "BNB" },
-                        { id: "xrp_address", name: "XRP" },
-                        { id: "usdt_address", name: "USDT" }
+                        { id: "usdt_address", name: "USDT", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                        { id: "sol_address", name: "SOL", color: "bg-purple-50 text-purple-700 border-purple-200" },
+                        { id: "btc_address", name: "BTC", color: "bg-amber-50 text-amber-700 border-amber-200" },
+                        { id: "eth_address", name: "ETH", color: "bg-blue-50 text-blue-700 border-blue-200" },
+                        { id: "bnb_address", name: "BNB", color: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+                        { id: "xrp_address", name: "XRP", color: "bg-slate-100 text-slate-700 border-slate-200" }
                       ] as const).map((coin) => (
                         <button
                           key={coin.id}
                           onClick={() => setSelectedDepositCoin(coin.id)}
                           className={cn(
-                            "py-2 px-1 rounded-lg text-xs font-bold transition-all border",
+                            "py-3 px-2 rounded-xl text-sm font-black transition-all border shadow-sm",
                             selectedDepositCoin === coin.id 
-                              ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-sm" 
-                              : "bg-white border-gray-100 text-gray-400 hover:bg-gray-50"
+                              ? "ring-2 ring-offset-2 ring-indigo-500 scale-105 " + coin.color 
+                              : "bg-white border-gray-100 text-gray-500 hover:bg-gray-50 font-bold"
                           )}
                         >
                           {coin.name}

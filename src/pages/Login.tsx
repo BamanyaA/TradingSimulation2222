@@ -58,29 +58,29 @@ export default function Login() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-20 flex justify-center min-h-[calc(100vh-10rem)] items-center">
+    <div className="container mx-auto px-4 py-20 flex justify-center min-h-[calc(100vh-10rem)] items-center bg-[#111c38] text-slate-100">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50"
+        className="w-full max-w-md bg-[#131b2e] border border-slate-800 rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-500/10"
       >
-        <div className="flex flex-col items-center mb-12">
-          <div className="p-4 bg-indigo-600 rounded-[1.5rem] mb-6 shadow-xl shadow-indigo-200">
+        <div className="flex flex-col items-center mb-10">
+          <div className="p-4 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-[1.5rem] mb-6 shadow-xl shadow-indigo-500/30">
             <TrendingUp className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Welcome Back</h2>
+          <h2 className="text-4xl font-black text-white tracking-tight">Welcome Back</h2>
           <p className="text-slate-400 mt-3 font-medium">Continue your trading journey</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-8">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
             <div className="relative group">
-              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
               <input 
                 type="email"
                 required
-                className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-4 pl-14 pr-6 text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100/50 transition-all outline-none font-medium"
+                className="w-full bg-[#1a233a] border border-slate-700/60 rounded-2xl py-4 pl-14 pr-6 text-white focus:bg-[#1f2b45] focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all outline-none font-medium"
                 placeholder="user@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -91,11 +91,11 @@ export default function Login() {
           <div className="space-y-2">
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
             <div className="relative group">
-              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
               <input 
                 type="password"
                 required
-                className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-4 pl-14 pr-6 text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100/50 transition-all outline-none font-medium"
+                className="w-full bg-[#1a233a] border border-slate-700/60 rounded-2xl py-4 pl-14 pr-6 text-white focus:bg-[#1f2b45] focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all outline-none font-medium"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -106,17 +106,20 @@ export default function Login() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black py-5 rounded-2xl transition-all flex items-center justify-center gap-3 group shadow-2xl shadow-indigo-100 active:scale-95 text-sm uppercase tracking-widest"
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/30 flex items-center justify-center gap-3 uppercase tracking-widest text-xs active:scale-95 disabled:opacity-50"
           >
-            {loading ? "Authorizing..." : "Log In"}
-            {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+            {loading ? "Signing In..." : "Sign In"} <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <p className="mt-10 text-center text-slate-400 font-medium">
-          New to the platform?{" "}
-          <Link to="/register" className="text-indigo-600 hover:text-indigo-500 font-black">Register</Link>
-        </p>
+        <div className="mt-8 text-center">
+          <p className="text-slate-400 text-sm font-medium">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-indigo-400 font-bold hover:underline">
+              Create Account
+            </Link>
+          </p>
+        </div>
       </motion.div>
     </div>
   );

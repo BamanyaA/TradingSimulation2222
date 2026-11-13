@@ -1232,17 +1232,36 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                {(["btc", "eth", "sol", "bnb", "xrp", "usdt"] as const).map((coin) => (
-                  <div key={coin} className="space-y-3">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">{coin} Secure Handle</label>
-                    <input 
-                      type="text"
-                      className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-5 px-6 text-slate-900 focus:bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 outline-none font-mono text-sm shadow-inner transition-all"
-                      value={(settings as any)[`${coin}_address`] || ""}
-                      onChange={(e) => setSettings({ ...settings, [`${coin}_address`]: e.target.value })}
-                    />
-                  </div>
-                ))}
+                {(["usdt", "sol", "btc", "eth", "bnb", "xrp"] as const).map((coin) => {
+                  const coinColors: Record<string, { badge: string, border: string, text: string }> = {
+                    usdt: { badge: "bg-emerald-100 text-emerald-800 border-emerald-200", border: "focus:border-emerald-500 focus:ring-emerald-50", text: "text-emerald-700" },
+                    sol: { badge: "bg-purple-100 text-purple-800 border-purple-200", border: "focus:border-purple-500 focus:ring-purple-50", text: "text-purple-700" },
+                    btc: { badge: "bg-amber-100 text-amber-800 border-amber-200", border: "focus:border-amber-500 focus:ring-amber-50", text: "text-amber-700" },
+                    eth: { badge: "bg-blue-100 text-blue-800 border-blue-200", border: "focus:border-blue-500 focus:ring-blue-50", text: "text-blue-700" },
+                    bnb: { badge: "bg-yellow-100 text-yellow-800 border-yellow-200", border: "focus:border-yellow-500 focus:ring-yellow-50", text: "text-yellow-700" },
+                    xrp: { badge: "bg-slate-200 text-slate-800 border-slate-300", border: "focus:border-slate-500 focus:ring-slate-50", text: "text-slate-700" },
+                  };
+                  const styling = coinColors[coin] || coinColors.usdt;
+                  return (
+                    <div key={coin} className="space-y-3">
+                      <div className="flex items-center justify-between ml-1">
+                        <label className={`block text-xs font-black uppercase tracking-[0.2em] ${styling.text}`}>
+                          {coin.toUpperCase()} Secure Handle
+                        </label>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${styling.badge}`}>
+                          {coin === "usdt" ? "Tether" : coin === "sol" ? "Solana" : coin === "btc" ? "Bitcoin" : coin === "eth" ? "Ethereum" : coin === "bnb" ? "BNB Chain" : "Ripple"}
+                        </span>
+                      </div>
+                      <input 
+                        type="text"
+                        className={`w-full bg-slate-100 border border-slate-200 rounded-2xl py-5 px-6 text-slate-900 focus:bg-white focus:ring-4 ${styling.border} outline-none font-mono font-bold text-base shadow-inner transition-all`}
+                        value={(settings as any)[`${coin}_address`] || ""}
+                        onChange={(e) => setSettings({ ...settings, [`${coin}_address`]: e.target.value })}
+                        placeholder={`Enter ${coin.toUpperCase()} institutional address...`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-12 pt-12 border-t border-slate-100">
                 <button 

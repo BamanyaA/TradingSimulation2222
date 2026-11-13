@@ -360,7 +360,7 @@ async function startServer() {
         userEmail: existing.email || "",
         type: "trade",
         amount: isWin ? finalAmount : amount * lossPercent,
-        status: isWin ? "completed" : "failed",
+        status: "completed",
         symbol,
         details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: " + (lossPercent * 100).toFixed(0) + "%"}`,
         createdAt: new Date()
