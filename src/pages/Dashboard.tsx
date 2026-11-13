@@ -183,12 +183,12 @@ interface DashboardProps {
 }
 
 const ASSET_DURATIONS = [
-  { s: 30, r: 5 },
-  { s: 60, r: 12 },
-  { s: 90, r: 15 },
-  { s: 120, r: 22 },
-  { s: 180, r: 30 },
-  { s: 300, r: 40 }
+  { s: 30, r: 5, activeBg: "bg-blue-600 border-blue-500 shadow-blue-500/30", badgeBg: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
+  { s: 60, r: 12, activeBg: "bg-cyan-600 border-cyan-500 shadow-cyan-500/30", badgeBg: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" },
+  { s: 90, r: 15, activeBg: "bg-emerald-600 border-emerald-500 shadow-emerald-500/30", badgeBg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
+  { s: 120, r: 22, activeBg: "bg-amber-600 border-amber-500 shadow-amber-500/30", badgeBg: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
+  { s: 180, r: 30, activeBg: "bg-purple-600 border-purple-500 shadow-purple-500/30", badgeBg: "bg-purple-500/10 text-purple-400 border border-purple-500/20" },
+  { s: 300, r: 40, activeBg: "bg-rose-600 border-rose-500 shadow-rose-500/30", badgeBg: "bg-rose-500/10 text-rose-400 border border-rose-500/20" }
 ];
 
 export default function Dashboard({ user, profile, refreshProfile }: DashboardProps) {
@@ -2107,21 +2107,24 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
               <div className="space-y-6">
                 <div>
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Time</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     {ASSET_DURATIONS.map((dur) => (
                       <button
                         key={dur.s}
                         onClick={() => setSelectedDuration(dur.s)}
                         className={cn(
-                          "py-3 rounded-xl border-2 transition-all text-center",
+                          "py-3.5 px-3 rounded-2xl border-2 transition-all text-center relative overflow-hidden shadow-lg",
                           selectedDuration === dur.s 
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-md scale-[1.02]" 
-                            : "bg-white border-gray-100 text-gray-900 hover:border-gray-200"
+                            ? `${dur.activeBg} text-white shadow-2xl scale-[1.03] ring-2 ring-white/50` 
+                            : "bg-[#131b2e] border-slate-700/60 text-slate-200 hover:border-slate-500 hover:bg-[#1a233a]"
                         )}
                       >
-                        <div className="text-sm font-black">{dur.s}s</div>
-                        <div className={cn("text-[10px] font-bold opacity-80", selectedDuration === dur.s ? "text-white" : "text-gray-400")}>
-                          Return {dur.r}%
+                        <div className="text-sm font-black tracking-tight">{dur.s}s</div>
+                        <div className={cn(
+                          "mt-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md inline-block",
+                          selectedDuration === dur.s ? "bg-white/20 text-white" : dur.badgeBg
+                        )}>
+                          Return +{dur.r}%
                         </div>
                       </button>
                     ))}
