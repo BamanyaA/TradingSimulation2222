@@ -236,6 +236,105 @@ app.post("/api/users/upsert", async (req, res) => {
   }
 });
 
+app.post("/api/admin/delete-user", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing token" });
+    }
+    const token = authHeader.split("Bearer ").pop();
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: Invalid token format" });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(token);
+    } catch (verifyError) {
+      decodedToken = decodeJWT(token);
+    }
+
+    if (!decodedToken || (decodedToken.email !== "habeshatilaye@gmail.com" && decodedToken.email !== "bamanejigu112@gmail.com")) {
+      return res.status(403).json({ error: "Forbidden: Admin access only" });
+    }
+
+    const { uid } = req.body;
+    if (!uid) {
+      return res.status(400).json({ error: "Missing required uid parameter" });
+    }
+
+    let authDeleted = false;
+    try {
+      await admin.auth().deleteUser(uid);
+      authDeleted = true;
+    } catch (authError: any) {
+      console.warn(`Auth credential deletion skipped for ${uid}:`, authError?.message);
+    }
+    res.json({ success: true, authDeleted });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+  }
+});
+
+app.post("/api/admin/purge-non-admins", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing token" });
+    }
+    const token = authHeader.split("Bearer ").pop();
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: Invalid token format" });
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(token);
+    } catch (verifyError) {
+      decodedToken = decodeJWT(token);
+    }
+
+    if (!decodedToken || (decodedToken.email !== "habeshatilaye@gmail.com" && decodedToken.email !== "bamanejigu112@gmail.com")) {
+      return res.status(403).json({ error: "Forbidden: Admin access only" });
+    }
+
+    let usersToDelete: string[] = [];
+    let nextPageToken: string | undefined = undefined;
+
+    try {
+      do {
+        const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+        listUsersResult.users.forEach((userRecord) => {
+          if (userRecord.email && userRecord.email.toLowerCase() !== "habeshatilaye@gmail.com" && userRecord.email.toLowerCase() !== "bamanejigu112@gmail.com") {
+            usersToDelete.push(userRecord.uid);
+          }
+        });
+        nextPageToken = listUsersResult.pageToken;
+      } while (nextPageToken);
+    } catch (authError) {
+      return res.json({
+        success: true,
+        deletedCount: 0,
+        apiRestricted: true,
+        message: "Identity Toolkit API restricted or disabled."
+      });
+    }
+
+    if (usersToDelete.length > 0) {
+      const deleteUsersResult = await admin.auth().deleteUsers(usersToDelete);
+      res.json({ 
+        success: true, 
+        deletedCount: deleteUsersResult.successCount, 
+        failedCount: deleteUsersResult.failureCount 
+      });
+    } else {
+      res.json({ success: true, deletedCount: 0, message: "No non-admin accounts found." });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+  }
+});
+
 app.post("/api/admin/update-balance", async (req, res) => {
   try {
     const { userId, amount, mode } = req.body;
