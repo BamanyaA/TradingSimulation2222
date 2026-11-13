@@ -111,17 +111,6 @@ export default function Login() {
             {loading ? "Authorizing..." : "Log In"}
             {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
           </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("habeshatilaye@gmail.com");
-              setPassword("Habesha@1212");
-            }}
-            className="w-full py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold text-xs rounded-xl border border-indigo-100 transition-all uppercase tracking-wider"
-          >
-            Fill Admin Credentials (Habeshatilaye@gmail.com)
-          </button>
         </form>
 
         <p className="mt-10 text-center text-slate-400 font-medium">
