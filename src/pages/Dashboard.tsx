@@ -1581,7 +1581,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
   );
 
   return (
-    <div className="min-h-screen bg-[#111c38] text-slate-100 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#111c38] bg-[radial-gradient(circle_at_20%_20%,rgba(236,72,153,0.12),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(99,102,241,0.12),transparent_50%)] text-slate-100 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative">
       <div className="flex-1 flex flex-col pb-32">
         <main className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {activeTab === "home" && renderHome()}

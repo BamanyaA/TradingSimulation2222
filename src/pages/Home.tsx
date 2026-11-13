@@ -4,7 +4,7 @@ import { TrendingUp, Shield, Zap, Globe, ArrowRight, BarChart3, PieChart, Activi
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#111c38] text-slate-100 selection:bg-indigo-500/30 overflow-x-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#111c38] bg-[radial-gradient(circle_at_20%_20%,rgba(236,72,153,0.15),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(99,102,241,0.15),transparent_50%)] text-slate-100 selection:bg-indigo-500/30 overflow-x-hidden">
       {/* Hero Section */}
       <section className="relative pt-32 pb-44 overflow-hidden">
         {/* Animated Background Elements */}
