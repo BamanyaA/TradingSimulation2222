@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account details and balance",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "fullName": { "type": "string" },
+        "address": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "verificationDoc": { "type": "string", "description": "Base64 or URL of ID document" },
+        "verificationStatus": { "type": "string", "enum": ["pending", "verified", "rejected", "unsubmitted"] },
+        "isVerified": { "type": "boolean" },
+        "balance": { "type": "number", "description": "User's current wallet balance" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "tradeAction": { "type": "boolean", "description": "Admin controlled trade outcome (True for profit, False for loss)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "balance", "role", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction Record",
+      "description": "Record of deposits, trades, and withdrawals",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["deposit", "trade", "withdraw"] },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "symbol": { "type": "string", "description": "Trading pair symbol e.g. BTCUSDT" },
+        "details": { "type": "string", "description": "Optional details about the trade or withdrawal" },
+        "receipt": { "type": "string", "description": "Base64 or URL of the transaction receipt" }
+      },
+      "required": ["userId", "type", "amount", "status", "createdAt"]
+    },
+    "Settings": {
+      "title": "Global Settings",
+      "description": "Platform settings like crypto addresses",
+      "type": "object",
+      "properties": {
+        "btc_address": { "type": "string" },
+        "eth_address": { "type": "string" },
+        "sol_address": { "type": "string" },
+        "bnb_address": { "type": "string" },
+        "xrp_address": { "type": "string" },
+        "usdt_address": { "type": "string" }
+      },
+      "required": ["btc_address", "eth_address", "sol_address", "bnb_address", "xrp_address", "usdt_address"]
+    },
+    "SupportMessage": {
+      "title": "Support Message",
+      "description": "Chat message between user and support",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The user this chat belongs to" },
+        "senderId": { "type": "string", "description": "ID of the sender (user or admin)" },
+        "senderEmail": { "type": "string" },
+        "text": { "type": "string" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "senderId", "text", "isAdmin", "createdAt"]
+    },
+    "News": {
+      "title": "Market News",
+      "description": "Dynamic news articles for the trading platform",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "author": { "type": "string" }
+      },
+      "required": ["title", "content", "createdAt", "author"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user accounts"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "History of all transactions"
+    },
+    "/settings/addresses": {
+      "schema": "Settings",
+      "description": "Global crypto deposit addresses"
+    },
+    "/support_messages/{messageId}": {
+      "schema": "SupportMessage",
+      "description": "Chronological support chat messages"
+    },
+    "/news/{newsId}": {
+      "schema": "News",
+      "description": "Market news articles"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "GAMMIX TRADING",
+  "description": "A modern cryptocurrency and binary trading platform with user and admin dashboards.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}

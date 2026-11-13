@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/node_modules/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api|uploads|assets|favicon.ico|index.html|vite.svg).*)$",
+      "destination": "/index.html"
+    }
+  ]
+}
