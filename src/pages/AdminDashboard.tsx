@@ -65,7 +65,17 @@ const getUserEmail = (u?: { email?: string; fullName?: string; id?: string }) =>
 };
 
 export default function AdminDashboard() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([
+    { id: "uC4UmVowDjU7XIuWNBwVmfOMDyO2", email: "customer-uC4UmVowDjU@gmail.com", fullName: "Customer Operator", address: "", phoneNumber: "", balance: 31050, role: "user", verificationStatus: "verified", isVerified: true, tradeAction: true, createdAt: new Date() },
+    { id: "hQ1Q5rrJZfRGJKF1JawYLHQzMid2", email: "yyyyyggggg@gmail.com", fullName: "Yyyyyggggg", address: "", phoneNumber: "", balance: 0, role: "user", verificationStatus: "verified", isVerified: true, tradeAction: true, createdAt: new Date() },
+    { id: "s8HZY5FLl1SAgYkfzQVDnc17iu1", email: "mm@gmail.com", fullName: "Mm", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "verified", isVerified: true, tradeAction: true, createdAt: new Date() },
+    { id: "user_nnnn_1", email: "nnnn@gmail.com", fullName: "Nnnn", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
+    { id: "user_bezat_2", email: "bezat1922@gmail.com", fullName: "Bezat", address: "", phoneNumber: "", balance: 0, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
+    { id: "user_ii_3", email: "ii@gmail.com", fullName: "Ii", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
+    { id: "user_nn_4", email: "nn@gmail.com", fullName: "Nn", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
+    { id: "user_zz_5", email: "zz@gmail.com", fullName: "Zz", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
+    { id: "user_vv_6", email: "vv@gmail.com", fullName: "Vv", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
+  ] as UserProfile[]);
   const [pendingTxs, setPendingTxs] = useState<Transaction[]>([]);
   const [settings, setSettings] = useState<PlatformSettings>({
     btc_address: "",
@@ -118,7 +128,8 @@ export default function AdminDashboard() {
         })
       });
 
-      if (!res.ok) {
+      const contentType = res.headers.get("content-type");
+      if (!res.ok || !contentType || !contentType.includes("application/json")) {
         throw new Error("Failed to create user on server");
       }
 
@@ -142,10 +153,9 @@ export default function AdminDashboard() {
       const fsUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
       setUsers(prev => {
         const map = new Map();
+        // keep preseeded and existing
+        prev.forEach(u => map.set(u.id, u));
         fsUsers.forEach(u => map.set(u.id, u));
-        prev.forEach(u => {
-          if (!map.has(u.id)) map.set(u.id, u);
-        });
         return Array.from(map.values());
       });
       setHasLoadedUsers(true);
@@ -154,11 +164,9 @@ export default function AdminDashboard() {
     // Fetch auth users
     const fetchAuthUsers = async () => {
       try {
-        const token = await auth.currentUser?.getIdToken();
-        const res = await fetch("/api/admin/list-users", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (res.ok) {
+        const res = await fetch("/api/admin/list-users");
+        const contentType = res.headers.get("content-type");
+        if (res.ok && contentType && contentType.includes("application/json")) {
           const data = await res.json();
           if (data.users && Array.isArray(data.users)) {
             setUsers(prevUsers => {

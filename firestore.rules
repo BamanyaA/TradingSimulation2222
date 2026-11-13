@@ -2,9 +2,78 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Global Safety Net
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "habeshatilaye@gmail.com" ||
+        request.auth.token.email == "bamanejigu112@gmail.com"
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      
+      allow create: if isSignedIn() && isOwner(userId);
+
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        // Prevent ordinary users from modifying protected sensitive fields (balance, role, isVerified, verificationStatus, tradeAction)
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'balance', 'isVerified', 'verificationStatus', 'tradeAction']))
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // 2. Transactions Collection
+    match /transactions/{transactionId} {
+      allow get, list: if isSignedIn() && (
+        isAdmin() || 
+        resource.data.userId == request.auth.uid
+      );
+
+      allow create: if isSignedIn() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.amount is number &&
+        request.resource.data.amount > 0;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // 3. Support Messages Collection
+    match /support_messages/{messageId} {
+      allow get, list: if isSignedIn() && (
+        isAdmin() || 
+        resource.data.userId == request.auth.uid
+      );
+
+      allow create: if isSignedIn() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() <= 2000;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // 4. Settings Collection
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Default Deny for unknown collections
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
