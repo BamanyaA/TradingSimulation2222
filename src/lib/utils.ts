@@ -13,7 +13,7 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 800, quality = 0.4): Promise<string> => {
+export const compressImage = (base64Str: string, maxWidth = 1920, maxHeight = 1920, quality = 0.7): Promise<string> => {
   return new Promise((resolve) => {
     try {
       if (!base64Str || typeof base64Str !== "string" || !base64Str.startsWith("data:image/")) {
@@ -76,7 +76,7 @@ export const uploadOrFallback = async (
 
   if (isVercel) {
     onSuccess(base64Data);
-    toast.success("Optimized and ready!", { id: toastId });
+    toast.success("Uploaded successfully!", { id: toastId });
     return;
   }
 
@@ -102,7 +102,7 @@ export const uploadOrFallback = async (
   } catch (error) {
     console.warn("Express serverless limit or offline detected. Activating direct client-side persistent bypass:", error);
     onSuccess(base64Data);
-    toast.success("Optimized and ready (persistent bypass)!", { id: toastId });
+    toast.success(successMsg, { id: toastId });
   }
 };
 
@@ -114,21 +114,15 @@ export const handleFileUploadFlow = async (
 ) => {
   if (!file) return;
 
-  // Ultra-generous file input limit of 50MB
+  // Generous file input limit of 50MB
   if (file.size > 50 * 1024 * 1024) {
-    toast.error("File is too large. Clear uploads should be under 50MB.", { id: toastId });
+    toast.error("File is too large. Please upload files under 50MB.", { id: toastId });
     return;
   }
 
   const isImage = file.type?.startsWith("image/");
-  
-  // Non-images (like PDFs) cannot be client-side compressed easily, so check if they are under 800KB due to Firestore limitations
-  if (!isImage && file.size > 800 * 1024) {
-    toast.error("PDF documents must be under 800KB due to database limits. For larger passports/scans, please take a clear snap and upload as JPG or PNG for auto-compression!", { id: toastId, duration: 8000 });
-    return;
-  }
 
-  toast.loading(isImage ? "Compressing and uploading document..." : "Uploading document...", { id: toastId });
+  toast.loading(isImage ? "Processing and uploading document..." : "Uploading document...", { id: toastId });
 
   const reader = new FileReader();
   reader.onloadend = async () => {
@@ -137,13 +131,13 @@ export const handleFileUploadFlow = async (
       let finalData = rawBase64;
       
       if (isImage) {
-        // High quality crisp document compression (1200px width/height auto-scaling, middle-bound quality is highly readable)
-        finalData = await compressImage(rawBase64, 1200, 1200, 0.5);
+        // High-res crisp compression (1920px max dimension, high quality 0.7)
+        finalData = await compressImage(rawBase64, 1920, 1920, 0.7);
       }
 
-      // Final base64 check to prevent Firestore document size limit overshoot (1MB)
-      if (finalData.length > 1.2 * 1024 * 1024) {
-        toast.error("File details are too dense for secure database limits. Please capture closer or crop the document.", { id: toastId });
+      // Allow up to 25MB payload
+      if (finalData.length > 25 * 1024 * 1024) {
+        toast.error("File is too large for database transmission. Please choose a smaller file.", { id: toastId });
         return;
       }
 
