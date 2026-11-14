@@ -334,7 +334,7 @@ async function startServer() {
     }
   });
 
-  // Endpoint to settle trade outcome using localDb store with idempotency
+  // Endpoint to settle trade outcome using secure Firestore transactions with atomic balance updates and tradeId idempotency
   app.post("/api/trade/settle", async (req, res) => {
     try {
       const { uid, amount, seconds, symbol, tradeId } = req.body;
@@ -342,17 +342,29 @@ async function startServer() {
         return res.status(400).json({ error: "Missing required trade fields" });
       }
 
+      let updatedBalance = 0;
+      let isWin = true;
+      let profitVal = 0;
+      let entryPrice = 0;
+      let exitPrice = 0;
+      let percentage = 5;
+      let totalReturn = 0;
+      let txData: any = null;
+      let userEmail = "";
+      let fullName = "";
+
       if (tradeId) {
-        const existingTx = localDb.transactions.find((t: any) => t.tradeId === tradeId);
-        if (existingTx) {
+        const existingLocalTx = localDb.transactions.find((t: any) => t.tradeId === tradeId);
+        console.log("Idempotency check tradeId:", tradeId, "Found existing:", !!existingLocalTx, "Total transactions:", localDb.transactions.length);
+        if (existingLocalTx) {
           const userObj = localDb.users[uid];
           return res.json({
             success: true,
-            isWin: existingTx.tradeType === "WIN",
-            profit: Math.abs(existingTx.profitOrLoss),
-            percentage: existingTx.tradeType === "WIN" ? 5 : -100,
-            entryPrice: existingTx.entryPrice,
-            exitPrice: existingTx.exitPrice,
+            isWin: existingLocalTx.tradeType === "WIN",
+            profit: Math.abs(existingLocalTx.profitOrLoss),
+            percentage: existingLocalTx.tradeType === "WIN" ? 5 : -100,
+            entryPrice: existingLocalTx.entryPrice,
+            exitPrice: existingLocalTx.exitPrice,
             balance: userObj?.balance || 0,
             profile: userObj,
             duplicate: true
@@ -360,35 +372,129 @@ async function startServer() {
         }
       }
 
-      let existing = localDb.users[uid];
-      if (!existing && admin.apps.length) {
+      if (admin.apps.length) {
         try {
           const fsDb = getFirestore();
-          const userDoc = await fsDb.collection("users").doc(uid).get();
-          if (userDoc.exists) {
-            existing = { id: uid, ...userDoc.data() };
-            localDb.users[uid] = existing;
-            saveLocalDb();
+          const userRef = fsDb.collection("users").doc(uid);
+
+          await fsDb.runTransaction(async (transaction) => {
+            // 1. Check idempotency if tradeId provided
+            if (tradeId) {
+              const txRef = fsDb.collection("transactions").doc(tradeId);
+              const txDoc = await transaction.get(txRef);
+              if (txDoc.exists) {
+                const existingTx = txDoc.data();
+                const userDoc = await transaction.get(userRef);
+                const currentBal = userDoc.exists ? (userDoc.data()?.balance || 0) : 0;
+                res.json({
+                  success: true,
+                  isWin: existingTx?.tradeType === "WIN",
+                  profit: Math.abs(existingTx?.profitOrLoss || 0),
+                  percentage: existingTx?.tradeType === "WIN" ? 5 : -100,
+                  entryPrice: existingTx?.entryPrice || 4200,
+                  exitPrice: existingTx?.exitPrice || 4220,
+                  balance: currentBal,
+                  profile: { id: uid, balance: currentBal },
+                  duplicate: true
+                });
+                return;
+              }
+            }
+
+            const userDoc = await transaction.get(userRef);
+            const userData = userDoc.exists ? userDoc.data() || {} : {};
+            const currentBalance = userData.balance !== undefined ? Number(userData.balance) : 0;
+            userEmail = userData.email || "";
+            fullName = userData.fullName || "User";
+            const tradeAction = userData.tradeAction !== undefined ? userData.tradeAction : true;
+
+            isWin = tradeAction !== undefined ? tradeAction : Math.random() > 0.5;
+
+            const durationObj = [
+              { s: 30, r: 5 },
+              { s: 60, r: 12 },
+              { s: 90, r: 15 },
+              { s: 120, r: 22 },
+              { s: 180, r: 30 },
+              { s: 300, r: 40 }
+            ].find((d: any) => d.s === seconds);
+            const returnPercent = durationObj ? durationObj.r / 100 : 0.05;
+
+            if (isWin) {
+              profitVal = Number((amount * returnPercent).toFixed(2));
+              updatedBalance = Number((currentBalance + profitVal).toFixed(2));
+              totalReturn = Number((amount + profitVal).toFixed(2));
+            } else {
+              profitVal = Number(amount);
+              updatedBalance = Number((Math.max(0, currentBalance - amount)).toFixed(2));
+              totalReturn = 0;
+            }
+
+            const basePrice = 4200 + Math.random() * 100;
+            entryPrice = Number(basePrice.toFixed(2));
+            exitPrice = Number((basePrice * (isWin ? (1 + returnPercent) : 0.95)).toFixed(2));
+            percentage = isWin ? (returnPercent * 100) : -100;
+
+            const txId = "tx_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+            txData = {
+              id: txId,
+              tradeId: tradeId || ("tr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7)),
+              userId: uid,
+              userEmail,
+              userName: fullName,
+              type: "trade",
+              asset: symbol.split(":").pop() || symbol,
+              tradeType: isWin ? "WIN" : "LOSS",
+              entryPrice,
+              exitPrice,
+              investmentAmount: Number(amount),
+              profitOrLoss: isWin ? profitVal : -Number(amount),
+              amount: isWin ? profitVal : Number(amount),
+              status: "completed",
+              symbol,
+              details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | Entry: $${entryPrice.toFixed(2)} | Exit: $${exitPrice.toFixed(2)} | Investment: $${Number(amount).toFixed(2)} | ${isWin ? "Profit: +" + profitVal.toFixed(2) : "Loss: -" + Number(amount).toFixed(2)} USDT`,
+              createdAt: admin.firestore.Timestamp.fromDate(new Date())
+            };
+
+            transaction.set(userRef, { balance: updatedBalance }, { merge: true });
+            transaction.set(fsDb.collection("transactions").doc(txData.tradeId), txData);
+          });
+
+          if (res.headersSent) return;
+
+          // Also update localDb for transient fallback consistency
+          if (!localDb.users[uid]) {
+            localDb.users[uid] = { id: uid, balance: updatedBalance, email: userEmail, fullName, role: "user" };
+          } else {
+            localDb.users[uid].balance = updatedBalance;
           }
-        } catch (e) {}
+          if (txData) {
+            localDb.transactions.unshift(txData);
+          }
+          saveLocalDb();
+
+          res.json({ 
+            success: true, 
+            isWin, 
+            finalAmount: isWin ? (amount + profitVal) : 0, 
+            profit: profitVal,
+            percentage,
+            entryPrice,
+            exitPrice,
+            totalReturn,
+            balance: updatedBalance,
+            profile: localDb.users[uid]
+          });
+          return;
+        } catch (txErr) {
+          console.warn("Firestore transaction fallback to localDb:", txErr);
+        }
       }
 
-      if (!existing) {
-        existing = {
-          id: uid,
-          email: "",
-          fullName: "User",
-          balance: 0,
-          role: "user",
-          tradeAction: true
-        };
-        localDb.users[uid] = existing;
-        saveLocalDb();
-      }
-
+      // Fallback if admin SDK not active
+      const existing = localDb.users[uid] || { id: uid, balance: 1000, email: "", fullName: "User", role: "user", tradeAction: true };
       const tradeAction = existing.tradeAction !== undefined ? existing.tradeAction : true;
-      const isWin = tradeAction !== undefined ? tradeAction : Math.random() > 0.5;
-
+      isWin = tradeAction !== undefined ? tradeAction : Math.random() > 0.5;
       const durationObj = [
         { s: 30, r: 5 },
         { s: 60, r: 12 },
@@ -400,16 +506,12 @@ async function startServer() {
       const returnPercent = durationObj ? durationObj.r / 100 : 0.05;
 
       const currentBalance = existing.balance || 0;
-      let profitVal = 0;
-      let updatedBalance = currentBalance;
-      let totalReturn = 0;
-
       if (isWin) {
         profitVal = Number((amount * returnPercent).toFixed(2));
         updatedBalance = Number((currentBalance + profitVal).toFixed(2));
         totalReturn = Number((amount + profitVal).toFixed(2));
       } else {
-        profitVal = Number(amount); // loss amount
+        profitVal = Number(amount);
         updatedBalance = Number((Math.max(0, currentBalance - amount)).toFixed(2));
         totalReturn = 0;
       }
@@ -419,16 +521,16 @@ async function startServer() {
       saveLocalDb();
 
       const basePrice = 4200 + Math.random() * 100;
-      const entryPrice = Number(basePrice.toFixed(2));
-      const exitPrice = Number((basePrice * (isWin ? (1 + returnPercent) : 0.95)).toFixed(2));
-      const percentage = isWin ? (returnPercent * 100) : -100;
+      entryPrice = Number(basePrice.toFixed(2));
+      exitPrice = Number((basePrice * (isWin ? (1 + returnPercent) : 0.95)).toFixed(2));
+      percentage = isWin ? (returnPercent * 100) : -100;
 
-      const tx = {
+      txData = {
         id: "tx_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
         tradeId: tradeId || ("tr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7)),
         userId: uid,
         userEmail: existing.email || "",
-        userName: existing.fullName || existing.email?.split("@")[0] || "User",
+        userName: existing.fullName || "User",
         type: "trade",
         asset: symbol.split(":").pop() || symbol,
         tradeType: isWin ? "WIN" : "LOSS",
@@ -443,21 +545,8 @@ async function startServer() {
         createdAt: new Date()
       };
 
-      localDb.transactions.unshift(tx);
+      localDb.transactions.unshift(txData);
       saveLocalDb();
-
-      if (admin.apps.length) {
-        try {
-          const fsDb = getFirestore();
-          await fsDb.collection("users").doc(uid).set({ balance: updatedBalance }, { merge: true });
-          await fsDb.collection("transactions").doc(tx.id).set({
-            ...tx,
-            createdAt: admin.firestore.Timestamp.fromDate(new Date())
-          });
-        } catch (fsSyncErr) {
-          // Silent catch for preview environments
-        }
-      }
 
       res.json({ 
         success: true, 
@@ -469,7 +558,7 @@ async function startServer() {
         exitPrice,
         totalReturn,
         balance: updatedBalance,
-        profile: localDb.users[uid]
+        profile: existing
       });
     } catch (error) {
       console.error("Error in /api/trade/settle:", error);
@@ -562,7 +651,7 @@ async function startServer() {
         address: existing.address || "",
         phoneNumber: existing.phoneNumber || "",
         verificationDoc: existing.verificationDoc || null,
-        balance: balance !== undefined ? balance : (existing.balance !== undefined ? existing.balance : 0),
+        balance: balance !== undefined ? balance : (existing.balance !== undefined ? existing.balance : (isAdmin ? 31050 : 1000)),
         role: role || existing.role || (isAdmin ? "admin" : "user"),
         createdAt: existing.createdAt || new Date(),
         verificationStatus: verificationStatus || existing.verificationStatus || (isAdmin ? "verified" : "unsubmitted"),

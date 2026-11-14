@@ -814,53 +814,21 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     }
 
     try {
-      let success = false;
-      try {
-        const res = await fetch("/api/withdraw", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            uid: user.uid,
-            email: user.email,
-            amount,
-            withdrawName: withdrawName.trim(),
-            withdrawAddress: withdrawAddress.trim(),
-            withdrawType
-          })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          success = true;
-          const userDocRef = doc(db, "users", user.uid);
-          await updateDoc(userDocRef, { balance: data.balance, fullName: withdrawName.trim() });
-          if (data.transaction) {
-            await setDoc(doc(db, "transactions", data.transaction.id), {
-              ...data.transaction,
-              createdAt: serverTimestamp()
-            });
-          }
-        }
-      } catch (apiErr) {
-        console.warn("API withdraw network fallback:", apiErr);
-      }
-
-      if (!success) {
-        const userDocRef = doc(db, "users", user.uid);
-        await updateDoc(userDocRef, {
-          balance: increment(-amount),
-          fullName: withdrawName.trim()
-        });
-
-        await addDoc(collection(db, "transactions"), {
-          userId: user.uid,
-          userEmail: user.email || "",
-          userName: withdrawName.trim(),
-          type: "withdraw",
-          amount: amount,
-          status: "pending",
-          details: `Name: ${withdrawName.trim()} | Wallet: ${withdrawAddress.trim()} | Network: ${withdrawType}`,
-          createdAt: serverTimestamp(),
-        });
+      const res = await fetch("/api/withdraw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          amount,
+          withdrawName: withdrawName.trim(),
+          withdrawAddress: withdrawAddress.trim(),
+          withdrawType
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Withdrawal failed");
       }
 
       setWithdrawAmount("");

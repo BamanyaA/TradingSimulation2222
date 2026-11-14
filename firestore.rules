@@ -19,7 +19,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // 1. Users Collection
+    // 1. Users Collection (Users cannot modify balance directly; only backend API / admin can)
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow list: if isAdmin();
@@ -36,7 +36,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 2. Transactions Collection
+    // 2. Transactions Collection (Users can view/create requests; only admins can approve/reject/update)
     match /transactions/{transactionId} {
       allow get, list: if isSignedIn() && (
         isAdmin() || 
@@ -44,9 +44,7 @@ service cloud.firestore {
       );
 
       allow create: if isSignedIn() && 
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.amount is number &&
-        request.resource.data.amount > 0;
+        request.resource.data.userId == request.auth.uid;
 
       allow update, delete: if isAdmin();
     }
