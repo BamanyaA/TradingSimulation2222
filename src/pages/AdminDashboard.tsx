@@ -623,6 +623,11 @@ export default function AdminDashboard() {
 
   const handleProcessTransaction = async (tx: Transaction, status: "completed" | "failed") => {
     try {
+      if (tx.status === "completed" || tx.status === "failed") {
+        toast.error("Transaction has already been processed.");
+        return;
+      }
+
       await updateDoc(doc(db, "transactions", tx.id), { status });
       
       // If it's a deposit and being completed, add the balance

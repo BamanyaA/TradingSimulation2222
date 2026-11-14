@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // Helper functions for authentication and authorization
     function isSignedIn() {
       return request.auth != null;
     }
@@ -11,7 +11,9 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == "habeshatilaye@gmail.com" ||
-        request.auth.token.email == "bamanejigu112@gmail.com"
+        request.auth.token.email == "bamanejigu112@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
@@ -19,7 +21,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // 1. Users Collection (Users cannot modify balance directly; only backend API / admin can)
+    // 1. Users Collection
+    // - Users can read/create their own profile.
+    // - Users can update profile details (KYC, name, etc.) but cannot modify protected fields (balance, role, tradeAction).
+    // - Admins have full access.
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow list: if isAdmin();
@@ -36,7 +41,9 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 2. Transactions Collection (Users can view/create requests; only admins can approve/reject/update)
+    // 2. Transactions Collection (Deposits, Withdrawals, Trades)
+    // - Users can create and read their own transaction records.
+    // - Only administrators can approve, reject, update, or delete transactions.
     match /transactions/{transactionId} {
       allow get, list: if isSignedIn() && (
         isAdmin() || 
@@ -49,11 +56,14 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // 3. Support Messages Collection
+    // 3. Support Messages Collection (Direct Messaging between Users and Administrators)
+    // - Users can read and create messages belonging to their conversation (userId == request.auth.uid).
+    // - Administrators can read, list, create (admin replies to any user conversation), update, and delete all messages.
     match /support_messages/{messageId} {
       allow get, list: if isSignedIn() && (
         isAdmin() || 
-        resource.data.userId == request.auth.uid
+        resource.data.userId == request.auth.uid ||
+        resource.data.senderId == request.auth.uid
       );
 
       allow create: if isSignedIn() && (
@@ -65,14 +75,11 @@ service cloud.firestore {
     }
 
     // 4. Settings Collection
+    // - Public read access for global platform configuration and deposit wallet addresses.
+    // - Admin-only write access.
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
-    }
-
-    // 5. Default Deny for unknown collections
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }

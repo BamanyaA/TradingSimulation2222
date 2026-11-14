@@ -134,9 +134,181 @@
       "balance": 0,
       "role": "user",
       "createdAt": "2026-11-14T09:24:50.623Z"
+    },
+    "fin_test_user_999": {
+      "id": "fin_test_user_999",
+      "email": "finance@gammixtrades.com",
+      "fullName": "Financial Test User",
+      "balance": 1300.25,
+      "role": "user"
+    },
+    "tx_audit_user_888": {
+      "id": "tx_audit_user_888",
+      "email": "tx_audit@gammixtrades.com",
+      "fullName": "Transaction Audit User",
+      "balance": 1100,
+      "role": "user"
+    },
+    "e2e_user_1794650190630": {
+      "id": "e2e_user_1794650190630",
+      "email": "e2e_user@gammixtrades.com",
+      "fullName": "E2E Test User",
+      "balance": 1200,
+      "role": "user",
+      "verificationStatus": "unsubmitted"
+    },
+    "e2e_admin_1794650190630": {
+      "id": "e2e_admin_1794650190630",
+      "email": "habeshatilaye@gmail.com",
+      "fullName": "E2E Admin User",
+      "balance": 31050,
+      "role": "admin",
+      "verificationStatus": "verified"
     }
   },
   "transactions": [
+    {
+      "id": "tx_e2e_wd_1794650190632",
+      "userId": "e2e_user_1794650190630",
+      "type": "withdraw",
+      "amount": 300,
+      "status": "rejected",
+      "details": "Name: E2E Test User | Wallet: TestWallet | Network: USDT",
+      "createdAt": "2026-11-14T09:56:30.632Z"
+    },
+    {
+      "id": "tx_e2e_trade_1_1794650190631",
+      "tradeId": "tr_e2e_1",
+      "userId": "e2e_user_1794650190630",
+      "type": "trade",
+      "tradeType": "WIN",
+      "amount": 200,
+      "profitOrLoss": 200,
+      "status": "completed",
+      "createdAt": "2026-11-14T09:56:30.631Z"
+    },
+    {
+      "id": "tx_e2e_dep_1794650190631",
+      "userId": "e2e_user_1794650190630",
+      "type": "deposit",
+      "amount": 1000,
+      "status": "completed",
+      "createdAt": "2026-11-14T09:56:30.631Z"
+    },
+    {
+      "id": "tx_wd_1794650099191",
+      "userId": "tx_audit_user_888",
+      "userEmail": "tx_audit@gammixtrades.com",
+      "userName": "Transaction Audit User",
+      "type": "withdraw",
+      "amount": 300,
+      "status": "rejected",
+      "details": "Name: Audit User | Wallet: TTestWallet | Network: USDT",
+      "createdAt": "2026-11-14T09:54:59.191Z"
+    },
+    {
+      "id": "tx_trade_loss_1794650099191",
+      "tradeId": "tr_loss_1794650099191",
+      "userId": "tx_audit_user_888",
+      "userEmail": "tx_audit@gammixtrades.com",
+      "userName": "Transaction Audit User",
+      "type": "trade",
+      "asset": "ETH/USDT",
+      "tradeType": "LOSS",
+      "investmentAmount": 200,
+      "profitOrLoss": -50,
+      "amount": 50,
+      "status": "completed",
+      "details": "LOSS | Loss: -$50.00 USDT",
+      "createdAt": "2026-11-14T09:54:59.191Z"
+    },
+    {
+      "id": "tx_trade_win_1794650099190",
+      "tradeId": "tr_win_1794650099190",
+      "userId": "tx_audit_user_888",
+      "userEmail": "tx_audit@gammixtrades.com",
+      "userName": "Transaction Audit User",
+      "type": "trade",
+      "asset": "BTC/USDT",
+      "tradeType": "WIN",
+      "investmentAmount": 500,
+      "profitOrLoss": 150,
+      "amount": 150,
+      "status": "completed",
+      "details": "WIN | Profit: +$150.00 USDT",
+      "createdAt": "2026-11-14T09:54:59.190Z"
+    },
+    {
+      "id": "tx_dep_1794650099189",
+      "userId": "tx_audit_user_888",
+      "userEmail": "tx_audit@gammixtrades.com",
+      "userName": "Transaction Audit User",
+      "type": "deposit",
+      "amount": 1000,
+      "status": "completed",
+      "details": "Deposit verified successfully",
+      "createdAt": "2026-11-14T09:54:59.189Z"
+    },
+    {
+      "id": "tx_withdraw_1794649994817",
+      "userId": "test_withdraw_user_1000",
+      "userEmail": "withdraw_test@gammixtrades.com",
+      "userName": "Withdrawal Test User",
+      "type": "withdraw",
+      "amount": 200,
+      "status": "rejected",
+      "details": "Name: Withdrawal Test User | Wallet: TTestWalletAddress123 | Network: USDT",
+      "createdAt": "2026-11-14T09:53:14.817Z"
+    },
+    {
+      "id": "tx_wd_1794649854283",
+      "userId": "fin_test_user_999",
+      "type": "withdraw",
+      "amount": 250,
+      "status": "pending",
+      "createdAt": "2026-11-14T09:50:54.283Z"
+    },
+    {
+      "id": "tx_17946498542832",
+      "tradeId": "tr_loss_1_1794649854283",
+      "userId": "fin_test_user_999",
+      "type": "trade",
+      "tradeType": "LOSS",
+      "amount": 75.25,
+      "profitOrLoss": -75.25,
+      "status": "completed",
+      "createdAt": "2026-11-14T09:50:54.283Z"
+    },
+    {
+      "id": "tx_17946498542821",
+      "tradeId": "tr_win_1_1794649854282",
+      "userId": "fin_test_user_999",
+      "type": "trade",
+      "tradeType": "WIN",
+      "amount": 125.5,
+      "profitOrLoss": 125.5,
+      "status": "completed",
+      "createdAt": "2026-11-14T09:50:54.282Z"
+    },
+    {
+      "id": "tx_dep_1794649854282",
+      "userId": "fin_test_user_999",
+      "type": "deposit",
+      "amount": 500,
+      "status": "completed",
+      "createdAt": "2026-11-14T09:50:54.282Z"
+    },
+    {
+      "id": "tx_withdraw_1794649732243",
+      "userId": "test_withdraw_user_1000",
+      "userEmail": "withdraw_test@gammixtrades.com",
+      "userName": "Withdrawal Test User",
+      "type": "withdraw",
+      "amount": 200,
+      "status": "rejected",
+      "details": "Name: Withdrawal Test User | Wallet: TTestWalletAddress123 | Network: USDT",
+      "createdAt": "2026-11-14T09:48:52.243Z"
+    },
     {
       "id": "tx_withdraw_1794647238850",
       "userId": "test_withdraw_user_1000",
@@ -549,7 +721,41 @@
       "createdAt": "2026-11-14T07:48:33.465Z"
     }
   ],
-  "support": [],
+  "support": [
+    {
+      "id": "msg_1794649993544",
+      "userId": "test_user_chat_123",
+      "senderId": "test_user_chat_123",
+      "senderEmail": "user@gammixtrades.com",
+      "text": "Hello, I need help with my deposit.",
+      "isAdmin": false,
+      "createdAt": "2026-11-14T09:53:13.544Z"
+    },
+    {
+      "id": "msg_admin_1794649993545",
+      "userId": "test_user_chat_123",
+      "senderId": "admin",
+      "text": "Hello! We have received your deposit request and are processing it.",
+      "isAdmin": true,
+      "createdAt": "2026-11-14T09:53:13.545Z"
+    },
+    {
+      "id": "msg_e2e_1794650190633",
+      "userId": "e2e_user_1794650190630",
+      "senderId": "e2e_user_1794650190630",
+      "text": "Hello admin, please verify my account.",
+      "isAdmin": false,
+      "createdAt": "2026-11-14T09:56:30.633Z"
+    },
+    {
+      "id": "msg_e2e_reply_1794650190633",
+      "userId": "e2e_user_1794650190630",
+      "senderId": "admin",
+      "text": "Hello! Your account has been reviewed.",
+      "isAdmin": true,
+      "createdAt": "2026-11-14T09:56:30.633Z"
+    }
+  ],
   "settings": {
     "btc_address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
     "eth_address": "0x71C...392",

@@ -639,8 +639,8 @@ app.post("/api/withdraw", async (req, res) => {
     if (db) {
       const userRef = db.collection("users").doc(uid);
       const userSnap = await userRef.get();
-      const userData = userSnap.exists ? userSnap.data()! : { balance: 1000, email: email || "" };
-      const currentBalance = userData.balance !== undefined ? Number(userData.balance) : 1000;
+      const userData = userSnap.exists ? userSnap.data()! : { balance: 0, email: email || "" };
+      const currentBalance = userData.balance !== undefined ? Number(userData.balance) : 0;
 
       if (currentBalance < Number(amount)) {
         return res.status(400).json({ error: "Insufficient balance" });
