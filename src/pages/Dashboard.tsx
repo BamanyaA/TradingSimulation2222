@@ -509,6 +509,13 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
         exitPrice = data.exitPrice;
         totalReturn = data.totalReturn;
         finalAmount = data.finalAmount;
+
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          await updateDoc(userDocRef, { balance: data.balance });
+        } catch (fsUpdateErr) {
+          console.warn("Client Firestore balance sync warning:", fsUpdateErr);
+        }
       } else {
         // Robust client-side fallback to guarantee database balance synchronization
         const userDocRef = doc(db, "users", user.uid);
