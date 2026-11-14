@@ -18,6 +18,7 @@ async function runCompleteTransactionAudit() {
   console.log("=== STARTING COMPLETE TRANSACTION SYSTEM AUDIT ===");
 
   const db = loadDb();
+  db.transactions = []; // reset for clean test
   const testUid = "tx_audit_user_888";
 
   // 1. Initialize user with $0.00 starting balance
