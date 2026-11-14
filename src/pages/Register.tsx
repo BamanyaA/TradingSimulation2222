@@ -36,7 +36,7 @@ export default function Register() {
             uid: user.uid,
             email: user.email,
             role: isAdminEmail ? "admin" : "user",
-            balance: isAdminEmail ? 31050 : 1000
+            balance: isAdminEmail ? 31050 : 0
           })
         });
       } catch (upsertErr) {

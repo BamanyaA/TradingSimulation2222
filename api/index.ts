@@ -226,7 +226,7 @@ app.post("/api/users/upsert", async (req, res) => {
         address: existing?.address || "",
         phoneNumber: existing?.phoneNumber || "",
         verificationDoc: existing?.verificationDoc || null,
-        balance: balance !== undefined ? balance : (existing?.balance !== undefined ? existing?.balance : (isAdmin ? 31050 : 1000)),
+        balance: balance !== undefined ? balance : (existing?.balance !== undefined ? existing?.balance : (isAdmin ? 31050 : 0)),
         role: role || existing?.role || (isAdmin ? "admin" : "user"),
         createdAt: existing?.createdAt || admin.firestore.FieldValue.serverTimestamp(),
         verificationStatus: verificationStatus || existing?.verificationStatus || (isAdmin ? "verified" : "unsubmitted"),

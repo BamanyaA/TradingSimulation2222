@@ -651,7 +651,7 @@ async function startServer() {
         address: existing.address || "",
         phoneNumber: existing.phoneNumber || "",
         verificationDoc: existing.verificationDoc || null,
-        balance: balance !== undefined ? balance : (existing.balance !== undefined ? existing.balance : (isAdmin ? 31050 : 1000)),
+        balance: balance !== undefined ? balance : (existing.balance !== undefined ? existing.balance : (isAdmin ? 31050 : 0)),
         role: role || existing.role || (isAdmin ? "admin" : "user"),
         createdAt: existing.createdAt || new Date(),
         verificationStatus: verificationStatus || existing.verificationStatus || (isAdmin ? "verified" : "unsubmitted"),
