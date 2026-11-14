@@ -59,15 +59,43 @@ app.get("/api/health", (req, res) => {
 // List users from Firestore
 app.get("/api/admin/list-users", async (req, res) => {
   try {
-    let users: any[] = [];
+    let usersMap = new Map();
     if (db) {
       try {
         const snapshot = await db.collection("users").get();
-        users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        snapshot.docs.forEach(doc => {
+          usersMap.set(doc.id, { id: doc.id, ...doc.data() });
+        });
       } catch (e) {
         console.warn("Firestore getUsers error:", e);
       }
+
+      try {
+        const listUsersResult = await admin.auth().listUsers(1000);
+        listUsersResult.users.forEach(userRecord => {
+          if (!usersMap.has(userRecord.uid)) {
+            const isAdmin = userRecord.email === "girmaeden37@gmail.com";
+            const newUser = {
+              id: userRecord.uid,
+              email: userRecord.email || "",
+              fullName: userRecord.displayName || userRecord.email?.split("@")[0] || "Trader",
+              balance: isAdmin ? 31050 : 0,
+              role: isAdmin ? "admin" : "user",
+              verificationStatus: isAdmin ? "verified" : "unsubmitted",
+              isVerified: isAdmin,
+              tradeAction: true,
+              createdAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+            usersMap.set(userRecord.uid, newUser);
+            db.collection("users").doc(userRecord.uid).set(newUser, { merge: true }).catch(() => {});
+          }
+        });
+      } catch (authListErr) {
+        console.warn("Auth listUsers fallback warning:", authListErr);
+      }
     }
+
+    const users = Array.from(usersMap.values());
     res.json({ users });
   } catch (error) {
     res.json({ users: [] });
