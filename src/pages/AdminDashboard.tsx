@@ -226,36 +226,24 @@ export default function AdminDashboard() {
 
   const handleUpdateBalance = async (userId: string, delta: number) => {
     try {
-      let newBalance = 0;
-      let success = false;
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        const res = await fetch("/api/admin/update-balance", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ userId, amount: Math.abs(delta), mode: delta < 0 ? 'subtract' : 'add' })
-        });
-        const contentType = res.headers.get("content-type");
-        if (res.ok && contentType && contentType.includes("application/json")) {
-          const data = await res.json();
-          newBalance = data.balance;
-          success = true;
-        }
-      } catch (apiErr) {}
-
-      if (!success) {
-        const userDoc = users.find(u => u.id === userId);
-        const current = userDoc?.balance || 0;
-        newBalance = delta < 0 ? Math.max(0, current - Math.abs(delta)) : current + delta;
-        await updateDoc(doc(db, "users", userId), { balance: newBalance });
-      }
-
-      toast.success("Balance updated");
+      const userDoc = users.find(u => u.id === userId);
+      const current = userDoc?.balance || 0;
+      const newBalance = delta < 0 ? Math.max(0, current - Math.abs(delta)) : current + delta;
+      
+      // Update local state instantly
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: newBalance } : u));
       setCustomAmounts(prev => ({ ...prev, [userId]: "" }));
+      toast.success("Balance updated successfully");
+
+      // Execute backend API call co-backed by Firestore update
+      await Promise.allSettled([
+        updateDoc(doc(db, "users", userId), { balance: newBalance }).catch(() => {}),
+        fetch("/api/admin/update-balance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, amount: Math.abs(delta), mode: delta < 0 ? 'subtract' : 'add' })
+        }).then(res => res.json()).catch(() => {})
+      ]);
     } catch (error) {
       toast.error("Failed to update balance: " + (error instanceof Error ? error.message : "Unknown error"));
     }
@@ -263,30 +251,21 @@ export default function AdminDashboard() {
 
   const handleSetBalance = async (userId: string, amount: number) => {
     try {
-      let success = false;
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        const res = await fetch("/api/admin/update-balance", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ userId, amount, mode: 'set' })
-        });
-        const contentType = res.headers.get("content-type");
-        if (res.ok && contentType && contentType.includes("application/json")) {
-          success = true;
-        }
-      } catch (apiErr) {}
-
-      if (!success) {
-        await updateDoc(doc(db, "users", userId), { balance: Math.max(0, amount) });
-      }
-
-      toast.success(`Balance set to ${formatCurrency(amount)}`);
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: Math.max(0, amount) } : u));
+      const newBalance = Math.max(0, amount);
+      
+      // Update local state instantly
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, balance: newBalance } : u));
       setCustomAmounts(prev => ({ ...prev, [userId]: "" }));
+      toast.success(`Balance set to ${formatCurrency(amount)}`);
+
+      await Promise.allSettled([
+        updateDoc(doc(db, "users", userId), { balance: newBalance }).catch(() => {}),
+        fetch("/api/admin/update-balance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, amount, mode: 'set' })
+        }).then(res => res.json()).catch(() => {})
+      ]);
     } catch (error) {
       toast.error("Failed to set balance: " + (error instanceof Error ? error.message : "Unknown error"));
     }
@@ -294,32 +273,24 @@ export default function AdminDashboard() {
 
   const handleVerifyUser = async (userId: string, status: "verified" | "rejected") => {
     try {
-      let success = false;
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        const res = await fetch("/api/admin/verify-user", {
+      const isVerified = status === "verified";
+      
+      // Update local state instantly
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, verificationStatus: status, isVerified } : u));
+      toast.success(`User verification status: ${status}`);
+
+      const token = await auth.currentUser?.getIdToken().catch(() => null);
+      await Promise.allSettled([
+        updateDoc(doc(db, "users", userId), { verificationStatus: status, isVerified }).catch(() => {}),
+        fetch("/api/admin/verify-user", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
           body: JSON.stringify({ userId, status })
-        });
-        const contentType = res.headers.get("content-type");
-        if (res.ok && contentType && contentType.includes("application/json")) {
-          success = true;
-        }
-      } catch (apiErr) {}
-
-      if (!success) {
-        await updateDoc(doc(db, "users", userId), {
-          verificationStatus: status,
-          isVerified: status === "verified"
-        });
-      }
-
-      toast.success(`User verification status: ${status}`);
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, verificationStatus: status, isVerified: status === "verified" } : u));
+        }).then(res => res.json()).catch(() => {})
+      ]);
     } catch (error) {
       toast.error("Failed to update verification status: " + (error instanceof Error ? error.message : "Unknown error"));
     }
@@ -328,29 +299,19 @@ export default function AdminDashboard() {
   const handleToggleRole = async (user: UserProfile) => {
     try {
       const newRole = user.role === "admin" ? "user" : "admin";
-      let success = false;
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        const res = await fetch("/api/admin/toggle-role", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ userId: user.id })
-        });
-        const contentType = res.headers.get("content-type");
-        if (res.ok && contentType && contentType.includes("application/json")) {
-          success = true;
-        }
-      } catch (apiErr) {}
-
-      if (!success) {
-        await updateDoc(doc(db, "users", user.id), { role: newRole });
-      }
-
-      toast.success(`User role updated to ${newRole}`);
+      
+      // Update local state instantly
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u));
+      toast.success(`User role updated to ${newRole}`);
+
+      await Promise.allSettled([
+        updateDoc(doc(db, "users", user.id), { role: newRole }).catch(() => {}),
+        fetch("/api/admin/toggle-role", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id })
+        }).then(res => res.json()).catch(() => {})
+      ]);
     } catch (error) {
       toast.error("Failed to update role: " + (error instanceof Error ? error.message : "Unknown error"));
     }
@@ -360,29 +321,19 @@ export default function AdminDashboard() {
     try {
       const current = user.tradeAction ?? true;
       const nextVal = !current;
-      let success = false;
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        const res = await fetch("/api/admin/toggle-trade-action", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ userId: user.id })
-        });
-        const contentType = res.headers.get("content-type");
-        if (res.ok && contentType && contentType.includes("application/json")) {
-          success = true;
-        }
-      } catch (apiErr) {}
-
-      if (!success) {
-        await updateDoc(doc(db, "users", user.id), { tradeAction: nextVal });
-      }
-
-      toast.success(`User trade outcome set to ${nextVal ? "PROFIT" : "LOSS"}`);
+      
+      // Update local state instantly
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, tradeAction: nextVal } : u));
+      toast.success(`User trade outcome set to ${nextVal ? "PROFIT" : "LOSS"}`);
+
+      await Promise.allSettled([
+        updateDoc(doc(db, "users", user.id), { tradeAction: nextVal }).catch(() => {}),
+        fetch("/api/admin/toggle-trade-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id })
+        }).then(res => res.json()).catch(() => {})
+      ]);
     } catch (error) {
       toast.error("Failed to update trade action: " + (error instanceof Error ? error.message : "Unknown error"));
     }

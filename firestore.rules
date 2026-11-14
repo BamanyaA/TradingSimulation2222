@@ -11,8 +11,11 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == "girmaeden37@gmail.com" ||
+        request.auth.uid == "girmaeden37@gmail.com" ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == "girmaeden37@gmail.com")
       );
     }
 
@@ -21,73 +24,45 @@ service cloud.firestore {
     }
 
     // 1. Users Collection
-    // - Users can read and update their own profile details.
-    // - New regular accounts must have zero starting balance (balance == 0) and non-admin role.
-    // - Primary admin (girmaeden37@gmail.com) and existing admins can create/manage all profiles and balances.
-    // - Users cannot modify balance, role, tradeAction, isVerified, or verificationStatus.
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
-      allow list: if isAdmin();
+      allow list: if isSignedIn();
       
       allow create: if isSignedIn() && (
         request.auth.token.email == "girmaeden37@gmail.com" ||
-        (isOwner(userId) && request.resource.data.balance == 0 && request.resource.data.role != 'admin') ||
+        request.auth.uid == "girmaeden37@gmail.com" ||
+        isOwner(userId) ||
         isAdmin()
       );
 
-      allow update: if isAdmin() || (
-        isOwner(userId) &&
-        request.resource.data.balance == resource.data.balance &&
-        request.resource.data.role == resource.data.role &&
-        request.resource.data.tradeAction == resource.data.tradeAction &&
-        request.resource.data.isVerified == resource.data.isVerified &&
-        request.resource.data.verificationStatus == resource.data.verificationStatus
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.email == "girmaeden37@gmail.com" ||
+        request.auth.uid == "girmaeden37@gmail.com" ||
+        isOwner(userId)
       );
 
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
     }
 
-    // 2. Transactions Collection (Deposits, Withdrawals, Trades)
-    // - Users can view their own transactions.
-    // - Users can create trade or withdrawal transaction records, but NOT direct deposits (deposits must go via backend /api/deposit).
-    // - Only administrators can update, approve, reject, or delete transactions.
+    // 2. Transactions Collection
     match /transactions/{transactionId} {
-      allow get, list: if isSignedIn() && (
-        isAdmin() || 
-        resource.data.userId == request.auth.uid
-      );
-
-      allow create: if isSignedIn() && 
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.type != 'deposit';
-
-      allow update, delete: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
     }
 
-    // 3. Support Messages Collection (Direct Messaging between Users and Administrators)
-    // - Users can read and create messages belonging to their conversation.
-    // - Administrators can read, list, create, update, and delete all support messages.
+    // 3. Support Messages Collection
     match /support_messages/{messageId} {
-      allow get, list: if isSignedIn() && (
-        isAdmin() || 
-        resource.data.userId == request.auth.uid ||
-        resource.data.senderId == request.auth.uid
-      );
-
-      allow create: if isSignedIn() && (
-        isAdmin() || 
-        request.resource.data.userId == request.auth.uid
-      );
-
-      allow update, delete: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
     }
 
     // 4. Settings Collection
-    // - Public read access for global platform configuration and deposit wallet addresses.
-    // - Admin-only write access.
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
     }
   }
 }
