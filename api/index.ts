@@ -622,6 +622,51 @@ app.post("/api/upload", (req, res) => {
   }
 });
 
+app.post("/api/withdraw", async (req, res) => {
+  try {
+    const { uid, email, amount, withdrawName, withdrawAddress, withdrawType } = req.body;
+    if (!uid || amount === undefined || isNaN(amount) || amount <= 0 || !withdrawName || !withdrawAddress) {
+      return res.status(400).json({ error: "Missing required withdrawal fields or invalid amount" });
+    }
+
+    if (db) {
+      const userRef = db.collection("users").doc(uid);
+      const userSnap = await userRef.get();
+      const userData = userSnap.exists ? userSnap.data()! : { balance: 1000, email: email || "" };
+      const currentBalance = userData.balance !== undefined ? Number(userData.balance) : 1000;
+
+      if (currentBalance < Number(amount)) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      const newBalance = Number((currentBalance - Number(amount)).toFixed(2));
+      const fullName = withdrawName.trim() || userData.fullName || "User";
+
+      await userRef.set({ balance: newBalance, fullName }, { merge: true });
+
+      const txRef = db.collection("transactions").doc();
+      const tx = {
+        id: txRef.id,
+        userId: uid,
+        userEmail: email || userData.email || "",
+        userName: fullName,
+        type: "withdraw",
+        amount: Number(amount),
+        status: "pending",
+        details: `Name: ${fullName} | Wallet: ${withdrawAddress.trim()} | Network: ${withdrawType || "USDT"}`,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      await txRef.set(tx);
+
+      return res.json({ success: true, balance: newBalance, transaction: tx, profile: { ...userData, balance: newBalance, fullName } });
+    }
+    res.status(500).json({ error: "Database unavailable" });
+  } catch (error) {
+    console.error("Error in /api/withdraw:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+  }
+});
+
 if (!process.env.VERCEL) {
   const PORT = Number(process.env.PORT) || 3000;
   app.listen(PORT, "0.0.0.0", () => {

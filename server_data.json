@@ -115,6 +115,38 @@
   },
   "transactions": [
     {
+      "id": "tx_bq6m74ltrlk",
+      "tradeId": "tr_test_loss_1794644318036",
+      "userId": "test_user_verification_1000",
+      "userEmail": "testuser@gammixtrades.com",
+      "userName": "Test Verification User",
+      "type": "trade",
+      "asset": "ETH/USDT",
+      "tradeType": "LOSS",
+      "investmentAmount": 50,
+      "profitOrLoss": -50,
+      "amount": 50,
+      "status": "completed",
+      "details": "LOSS | Loss: -$50.00 USDT",
+      "createdAt": "2026-11-14T08:18:38.036Z"
+    },
+    {
+      "id": "tx_6jd9c9tw50w",
+      "tradeId": "tr_test_win_1794644318034",
+      "userId": "test_user_verification_1000",
+      "userEmail": "testuser@gammixtrades.com",
+      "userName": "Test Verification User",
+      "type": "trade",
+      "asset": "BTC/USDT",
+      "tradeType": "WIN",
+      "investmentAmount": 500,
+      "profitOrLoss": 100,
+      "amount": 100,
+      "status": "completed",
+      "details": "WIN | Profit: +$100.00 USDT",
+      "createdAt": "2026-11-14T08:18:38.034Z"
+    },
+    {
       "id": "tx_8ec97q958fn",
       "tradeId": "tr_test_loss_1794643686719",
       "userId": "test_user_verification_1000",
