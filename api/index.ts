@@ -653,12 +653,12 @@ app.post("/api/admin/toggle-trade-action", async (req, res) => {
         }
       }
     }
-    const { userId } = req.body;
+    const { userId, tradeAction } = req.body;
     if (db) {
       const ref = db.collection("users").doc(userId);
       const snap = await ref.get();
       const current = snap.exists ? snap.data()?.tradeAction : true;
-      const nextVal = current === undefined ? false : !current;
+      const nextVal = tradeAction !== undefined ? tradeAction : (current === undefined ? false : !current);
       await ref.set({ tradeAction: nextVal }, { merge: true });
       return res.json({ success: true, tradeAction: nextVal });
     }

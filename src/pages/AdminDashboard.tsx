@@ -331,7 +331,7 @@ export default function AdminDashboard() {
         fetch("/api/admin/toggle-trade-action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.id })
+          body: JSON.stringify({ userId: user.id, tradeAction: nextVal })
         }).then(res => res.json()).catch(() => {})
       ]);
     } catch (error) {

@@ -611,15 +611,15 @@ async function startServer() {
   // Admin endpoint to toggle trade action (win/loss)
   app.post("/api/admin/toggle-trade-action", async (req, res) => {
     try {
-      const { userId } = req.body;
-      const existing = localDb.users[userId];
-      if (!existing) return res.status(404).json({ error: "User not found" });
+      const { userId, tradeAction } = req.body;
+      const existing = localDb.users[userId] || { id: userId, balance: 0, role: "user" };
 
-      existing.tradeAction = existing.tradeAction === undefined ? false : !existing.tradeAction;
+      const nextVal = tradeAction !== undefined ? tradeAction : (existing.tradeAction === undefined ? false : !existing.tradeAction);
+      existing.tradeAction = nextVal;
       localDb.users[userId] = existing;
       saveLocalDb();
 
-      res.json({ success: true, tradeAction: existing.tradeAction });
+      res.json({ success: true, tradeAction: nextVal });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
