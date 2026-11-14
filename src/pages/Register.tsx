@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-hot-toast";
 import { TrendingUp, Mail, Lock, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
@@ -43,6 +44,23 @@ export default function Register() {
         });
       } catch (upsertErr) {
         console.warn("Server upsert profile warning:", upsertErr);
+      }
+
+      // Guaranteed client-side Firestore profile fallback
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          id: user.uid,
+          email: user.email,
+          fullName: user.email?.split("@")[0] || "User",
+          balance: isAdminEmail ? 31050 : 0,
+          role: isAdminEmail ? "admin" : "user",
+          verificationStatus: isAdminEmail ? "verified" : "unsubmitted",
+          isVerified: isAdminEmail ? true : false,
+          tradeAction: true,
+          createdAt: serverTimestamp()
+        }, { merge: true });
+      } catch (clientFsErr) {
+        console.warn("Client Firestore user profile creation warning:", clientFsErr);
       }
 
       toast.success("Account created successfully!");
