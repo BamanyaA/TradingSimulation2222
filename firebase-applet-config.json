@@ -1,10 +1,9 @@
-
 {
   "apiKey": "AIzaSyA3twyI544nJNoekeWxn0CA0roK8j3qq9I",
-  "authDomain": "tradingsimulation22.firebaseapp.com",
-  "projectId": "tradingsimulation22",
+  "authDomain": "simulation2222.firebaseapp.com",
+  "projectId": "simulation2222",
   "firestoreDatabaseId": "(default)",
-  "storageBucket": "tradingsimulation22.firebasestorage.app",
+  "storageBucket": "simulation2222.firebasestorage.app",
   "messagingSenderId": "882532206192",
   "appId": "1:882532206192:web:a84311a02d479a35d756b5",
   "measurementId": "G-81HFP91PKC"

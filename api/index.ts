@@ -18,7 +18,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 // Initialize Firebase Admin SDK with optional Service Account or Project ID
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "tradingsimulation22" };
+  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "simulation2222" };
   
   if (!admin.apps.length) {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -26,16 +26,16 @@ try {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
-          projectId: firebaseConfig.projectId || "tradingsimulation22"
+          projectId: firebaseConfig.projectId || "simulation2222"
         });
         console.log("Firebase Admin initialized with service account credentials.");
       } catch (saErr) {
         console.warn("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY, falling back to projectId init:", saErr);
-        admin.initializeApp({ projectId: firebaseConfig.projectId || "tradingsimulation22" });
+        admin.initializeApp({ projectId: firebaseConfig.projectId || "simulation2222" });
       }
     } else {
       admin.initializeApp({
-        projectId: firebaseConfig.projectId || "tradingsimulation22"
+        projectId: firebaseConfig.projectId || "simulation2222"
       });
     }
   }
@@ -722,6 +722,8 @@ app.post("/api/withdraw", async (req, res) => {
     res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
   }
 });
+
+app.get("/healthz", (req, res) => res.status(200).send("OK"));
 
 if (!process.env.VERCEL) {
   const PORT = Number(process.env.PORT) || 3000;

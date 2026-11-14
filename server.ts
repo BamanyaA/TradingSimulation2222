@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 let adminApp: admin.app.App | undefined = undefined;
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "tradingsimulation22" };
+  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "simulation2222" };
   
   if (!admin.apps.length) {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -27,14 +27,14 @@ try {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
         adminApp = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
-          projectId: firebaseConfig.projectId || "tradingsimulation22"
+          projectId: firebaseConfig.projectId || "simulation2222"
         });
       } catch (saErr) {
-        adminApp = admin.initializeApp({ projectId: firebaseConfig.projectId || "tradingsimulation22" });
+        adminApp = admin.initializeApp({ projectId: firebaseConfig.projectId || "simulation2222" });
       }
     } else {
       adminApp = admin.initializeApp({
-        projectId: firebaseConfig.projectId || "tradingsimulation22"
+        projectId: firebaseConfig.projectId || "simulation2222"
       });
     }
   } else {
@@ -886,6 +886,8 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  app.get("/healthz", (req, res) => res.status(200).send("OK"));
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
