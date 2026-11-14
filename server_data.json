@@ -220,39 +220,148 @@
       "balance": 31050,
       "role": "admin",
       "verificationStatus": "verified"
+    },
+    "new_user_zero_balance_1794673759472": {
+      "id": "new_user_zero_balance_1794673759472",
+      "email": "brandnewuser@gammixtrades.com",
+      "fullName": "Brand New User",
+      "balance": 0,
+      "role": "user",
+      "createdAt": "2026-11-14T16:29:19.472Z"
+    },
+    "e2e_user_1794673764543": {
+      "id": "e2e_user_1794673764543",
+      "email": "e2e_user@gammixtrades.com",
+      "fullName": "E2E Test User",
+      "balance": 1200,
+      "role": "user",
+      "verificationStatus": "unsubmitted"
+    },
+    "e2e_admin_1794673764543": {
+      "id": "e2e_admin_1794673764543",
+      "email": "habeshatilaye@gmail.com",
+      "fullName": "E2E Admin User",
+      "balance": 31050,
+      "role": "admin",
+      "verificationStatus": "verified"
+    },
+    "secure_user_111": {
+      "id": "secure_user_111",
+      "email": "secure@gammixtrades.com",
+      "fullName": "Secure User",
+      "balance": 1340,
+      "role": "user",
+      "isVerified": false,
+      "verificationStatus": "unsubmitted"
+    },
+    "new_user_zero_balance_1794674679039": {
+      "id": "new_user_zero_balance_1794674679039",
+      "email": "brandnewuser@gammixtrades.com",
+      "fullName": "Brand New User",
+      "balance": 0,
+      "role": "user",
+      "createdAt": "2026-11-14T16:44:39.039Z"
+    },
+    "e2e_user_1794674683927": {
+      "id": "e2e_user_1794674683927",
+      "email": "e2e_user@gammixtrades.com",
+      "fullName": "E2E Test User",
+      "balance": 1200,
+      "role": "user",
+      "verificationStatus": "unsubmitted"
+    },
+    "e2e_admin_1794674683927": {
+      "id": "e2e_admin_1794674683927",
+      "email": "habeshatilaye@gmail.com",
+      "fullName": "E2E Admin User",
+      "balance": 31050,
+      "role": "admin",
+      "verificationStatus": "verified"
+    },
+    "new_user_zero_balance_1794675150138": {
+      "id": "new_user_zero_balance_1794675150138",
+      "email": "brandnewuser@gammixtrades.com",
+      "fullName": "Brand New User",
+      "balance": 0,
+      "role": "user",
+      "createdAt": "2026-11-14T16:52:30.138Z"
+    },
+    "e2e_user_1794675155131": {
+      "id": "e2e_user_1794675155131",
+      "email": "e2e_user@gammixtrades.com",
+      "fullName": "E2E Test User",
+      "balance": 1200,
+      "role": "user",
+      "verificationStatus": "unsubmitted"
+    },
+    "e2e_admin_1794675155131": {
+      "id": "e2e_admin_1794675155131",
+      "email": "habeshatilaye@gmail.com",
+      "fullName": "E2E Admin User",
+      "balance": 31050,
+      "role": "admin",
+      "verificationStatus": "verified"
     }
   },
   "transactions": [
     {
-      "id": "tx_e2e_wd_1794660874933",
-      "userId": "e2e_user_1794660874931",
+      "id": "dep_ref_777",
+      "userId": "secure_user_111",
+      "type": "deposit",
+      "amount": 500,
+      "status": "completed",
+      "details": "Deposit Request pending admin review",
+      "createdAt": "2026-11-14T16:52:36.333Z"
+    },
+    {
+      "id": "tx_tr_1",
+      "tradeId": "tr_unique_555",
+      "userId": "secure_user_111",
+      "type": "trade",
+      "tradeType": "WIN",
+      "amount": 40,
+      "profitOrLoss": 40,
+      "status": "completed",
+      "createdAt": "2026-11-14T16:52:36.332Z"
+    },
+    {
+      "id": "req_wd_999",
+      "userId": "secure_user_111",
+      "type": "withdraw",
+      "amount": 200,
+      "status": "pending",
+      "createdAt": "2026-11-14T16:52:36.331Z"
+    },
+    {
+      "id": "tx_e2e_wd_1794675155134",
+      "userId": "e2e_user_1794675155131",
       "type": "withdraw",
       "amount": 300,
       "status": "rejected",
       "details": "Name: E2E Test User | Wallet: TestWallet | Network: USDT",
-      "createdAt": "2026-11-14T12:54:34.933Z"
+      "createdAt": "2026-11-14T16:52:35.134Z"
     },
     {
-      "id": "tx_e2e_trade_1_1794660874932",
+      "id": "tx_e2e_trade_1_1794675155133",
       "tradeId": "tr_e2e_1",
-      "userId": "e2e_user_1794660874931",
+      "userId": "e2e_user_1794675155131",
       "type": "trade",
       "tradeType": "WIN",
       "amount": 200,
       "profitOrLoss": 200,
       "status": "completed",
-      "createdAt": "2026-11-14T12:54:34.932Z"
+      "createdAt": "2026-11-14T16:52:35.133Z"
     },
     {
-      "id": "tx_e2e_dep_1794660874931",
-      "userId": "e2e_user_1794660874931",
+      "id": "tx_e2e_dep_1794675155132",
+      "userId": "e2e_user_1794675155131",
       "type": "deposit",
       "amount": 1000,
       "status": "completed",
-      "createdAt": "2026-11-14T12:54:34.931Z"
+      "createdAt": "2026-11-14T16:52:35.132Z"
     },
     {
-      "id": "tx_wd_1794660872642",
+      "id": "tx_wd_1794675152647",
       "userId": "tx_audit_user_888",
       "userEmail": "tx_audit@gammixtrades.com",
       "userName": "Transaction Audit User",
@@ -260,11 +369,11 @@
       "amount": 300,
       "status": "rejected",
       "details": "Name: Audit User | Wallet: TTestWallet | Network: USDT",
-      "createdAt": "2026-11-14T12:54:32.642Z"
+      "createdAt": "2026-11-14T16:52:32.647Z"
     },
     {
-      "id": "tx_trade_loss_1794660872642",
-      "tradeId": "tr_loss_1794660872642",
+      "id": "tx_trade_loss_1794675152647",
+      "tradeId": "tr_loss_1794675152647",
       "userId": "tx_audit_user_888",
       "userEmail": "tx_audit@gammixtrades.com",
       "userName": "Transaction Audit User",
@@ -276,11 +385,11 @@
       "amount": 50,
       "status": "completed",
       "details": "LOSS | Loss: -$50.00 USDT",
-      "createdAt": "2026-11-14T12:54:32.642Z"
+      "createdAt": "2026-11-14T16:52:32.647Z"
     },
     {
-      "id": "tx_trade_win_1794660872642",
-      "tradeId": "tr_win_1794660872642",
+      "id": "tx_trade_win_1794675152647",
+      "tradeId": "tr_win_1794675152646",
       "userId": "tx_audit_user_888",
       "userEmail": "tx_audit@gammixtrades.com",
       "userName": "Transaction Audit User",
@@ -292,10 +401,10 @@
       "amount": 150,
       "status": "completed",
       "details": "WIN | Profit: +$150.00 USDT",
-      "createdAt": "2026-11-14T12:54:32.642Z"
+      "createdAt": "2026-11-14T16:52:32.647Z"
     },
     {
-      "id": "tx_dep_1794660872641",
+      "id": "tx_dep_1794675152646",
       "userId": "tx_audit_user_888",
       "userEmail": "tx_audit@gammixtrades.com",
       "userName": "Transaction Audit User",
@@ -303,26 +412,42 @@
       "amount": 1000,
       "status": "completed",
       "details": "Deposit verified successfully",
-      "createdAt": "2026-11-14T12:54:32.641Z"
+      "createdAt": "2026-11-14T16:52:32.646Z"
     }
   ],
   "support": [
     {
-      "id": "msg_1794670299810",
+      "id": "msg_1794675153898",
       "userId": "test_user_chat_123",
       "senderId": "test_user_chat_123",
       "senderEmail": "user@gammixtrades.com",
       "text": "Hello, I need help with my deposit.",
       "isAdmin": false,
-      "createdAt": "2026-11-14T15:31:39.810Z"
+      "createdAt": "2026-11-14T16:52:33.898Z"
     },
     {
-      "id": "msg_admin_1794670299810",
+      "id": "msg_admin_1794675153898",
       "userId": "test_user_chat_123",
       "senderId": "admin",
       "text": "Hello! We have received your deposit request and are processing it.",
       "isAdmin": true,
-      "createdAt": "2026-11-14T15:31:39.810Z"
+      "createdAt": "2026-11-14T16:52:33.899Z"
+    },
+    {
+      "id": "msg_e2e_1794675155135",
+      "userId": "e2e_user_1794675155131",
+      "senderId": "e2e_user_1794675155131",
+      "text": "Hello admin, please verify my account.",
+      "isAdmin": false,
+      "createdAt": "2026-11-14T16:52:35.135Z"
+    },
+    {
+      "id": "msg_e2e_reply_1794675155135",
+      "userId": "e2e_user_1794675155131",
+      "senderId": "admin",
+      "text": "Hello! Your account has been reviewed.",
+      "isAdmin": true,
+      "createdAt": "2026-11-14T16:52:35.135Z"
     }
   ],
   "settings": {

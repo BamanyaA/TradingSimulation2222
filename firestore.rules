@@ -21,28 +21,36 @@ service cloud.firestore {
     }
 
     // 1. Users Collection
-    // - Users can read/create their own profile.
-    // - Users can update profile details (KYC, name, etc.) but cannot modify protected fields (balance, role, tradeAction).
-    // - Admins have full access.
+    // - Users can read and update their own profile details.
+    // - New regular accounts must have zero starting balance (balance == 0) and non-admin role.
+    // - Primary admin (girmaeden37@gmail.com) and existing admins can create/manage all profiles and balances.
+    // - Users cannot modify balance, role, tradeAction, isVerified, or verificationStatus.
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow list: if isAdmin();
       
-      allow create: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn() && (
+        request.auth.token.email == "girmaeden37@gmail.com" ||
+        (isOwner(userId) && request.resource.data.balance == 0 && request.resource.data.role != 'admin') ||
+        isAdmin()
+      );
 
       allow update: if isAdmin() || (
         isOwner(userId) &&
         request.resource.data.balance == resource.data.balance &&
         request.resource.data.role == resource.data.role &&
-        request.resource.data.tradeAction == resource.data.tradeAction
+        request.resource.data.tradeAction == resource.data.tradeAction &&
+        request.resource.data.isVerified == resource.data.isVerified &&
+        request.resource.data.verificationStatus == resource.data.verificationStatus
       );
 
       allow delete: if isAdmin();
     }
 
     // 2. Transactions Collection (Deposits, Withdrawals, Trades)
-    // - Users can create and read their own transaction records.
-    // - Only administrators can approve, reject, update, or delete transactions.
+    // - Users can view their own transactions.
+    // - Users can create trade or withdrawal transaction records, but NOT direct deposits (deposits must go via backend /api/deposit).
+    // - Only administrators can update, approve, reject, or delete transactions.
     match /transactions/{transactionId} {
       allow get, list: if isSignedIn() && (
         isAdmin() || 
@@ -50,14 +58,15 @@ service cloud.firestore {
       );
 
       allow create: if isSignedIn() && 
-        request.resource.data.userId == request.auth.uid;
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.type != 'deposit';
 
       allow update, delete: if isAdmin();
     }
 
     // 3. Support Messages Collection (Direct Messaging between Users and Administrators)
-    // - Users can read and create messages belonging to their conversation (userId == request.auth.uid).
-    // - Administrators can read, list, create (admin replies to any user conversation), update, and delete all messages.
+    // - Users can read and create messages belonging to their conversation.
+    // - Administrators can read, list, create, update, and delete all support messages.
     match /support_messages/{messageId} {
       allow get, list: if isSignedIn() && (
         isAdmin() || 
