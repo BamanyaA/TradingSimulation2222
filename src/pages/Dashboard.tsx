@@ -523,15 +523,22 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
         const returnPercent = durationObj ? durationObj.r / 100 : 0.05;
         const lossPercent = (seconds / 30) * 0.05;
 
-        finalAmount = isWin ? (amount * (1 + returnPercent)) : (amount * (1 - lossPercent));
-        profitVal = isWin ? (amount * returnPercent) : (amount * lossPercent);
-        entryPrice = 4200 + Math.random() * 100;
-        exitPrice = entryPrice * (isWin ? (1 + returnPercent) : (1 - lossPercent));
-        percentage = (isWin ? returnPercent : -lossPercent) * 100;
-        totalReturn = isWin ? (amount + profitVal) : Math.max(0, amount - profitVal);
+        let updatedBalance = userData.balance || 0;
+        if (isWin) {
+          profitVal = Number((amount * returnPercent).toFixed(2));
+          updatedBalance = Number(((userData.balance || 0) + profitVal).toFixed(2));
+          totalReturn = Number((amount + profitVal).toFixed(2));
+          finalAmount = amount + profitVal;
+        } else {
+          profitVal = Number(amount); // loss amount
+          updatedBalance = Number((Math.max(0, (userData.balance || 0) - amount)).toFixed(2));
+          totalReturn = 0;
+          finalAmount = 0;
+        }
 
-        const currentBalance = userData.balance || 0;
-        const updatedBalance = Math.max(0, currentBalance - amount + finalAmount);
+        entryPrice = 4200 + Math.random() * 100;
+        exitPrice = entryPrice * (isWin ? (1 + returnPercent) : 0.95);
+        percentage = isWin ? (returnPercent * 100) : -100;
 
         // Update database balance immediately
         try {
@@ -547,11 +554,18 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
             id: txRef.id,
             userId: user.uid,
             userEmail: user.email || "",
+            userName: profile?.fullName || user.email?.split("@")[0] || "User",
             type: "trade",
-            amount: isWin ? finalAmount : amount * lossPercent,
+            asset: symbol.split(":").pop() || symbol,
+            tradeType: isWin ? "WIN" : "LOSS",
+            entryPrice,
+            exitPrice,
+            investmentAmount: Number(amount),
+            profitOrLoss: isWin ? profitVal : -Number(amount),
+            amount: isWin ? profitVal : Number(amount),
             status: "completed",
             symbol,
-            details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: " + (lossPercent * 100).toFixed(0) + "%"}`,
+            details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | Entry: $${entryPrice.toFixed(2)} | Exit: $${exitPrice.toFixed(2)} | Investment: $${Number(amount).toFixed(2)} | ${isWin ? "Profit: +" + profitVal.toFixed(2) : "Loss: -" + Number(amount).toFixed(2)} USDT`,
             createdAt: serverTimestamp()
           });
         } catch (txErr) {
@@ -787,6 +801,11 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     }
 
     try {
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, {
+        balance: increment(-amount)
+      });
+
       // Create the withdrawal transaction
       await addDoc(collection(db, "transactions"), {
         userId: user.uid,
@@ -801,7 +820,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
 
       // Automatically update the user profile fullName if it was not previously set
       if (profile && !profile.fullName) {
-        await updateDoc(doc(db, "users", user.uid), {
+        await updateDoc(userDocRef, {
           fullName: withdrawName.trim()
         });
       }
@@ -1388,28 +1407,49 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
             <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-xs">No asset history recorded yet</div>
           ) : (
             transactions.map((tx) => (
-              <div key={tx.id} className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+              <div key={tx.id} className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-md",
+                    "w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-md shrink-0",
                     tx.type === "deposit" ? "bg-emerald-50 text-emerald-600" :
-                    tx.type === "withdraw" ? "bg-rose-50 text-rose-600" : "bg-indigo-50 text-indigo-600"
+                    tx.type === "withdraw" ? "bg-rose-50 text-rose-600" :
+                    tx.tradeType === "WIN" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                   )}>
                     {tx.type === "deposit" ? <ArrowDownCircle /> : tx.type === "withdraw" ? <ArrowUpCircle /> : <BarChart2 />}
                   </div>
                   <div>
-                    <div className="font-display font-black text-slate-900 capitalize text-base">{tx.type}</div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                      {tx.createdAt?.toDate?.()?.toLocaleString() || "Processing..."}
+                    <div className="font-display font-black text-slate-900 text-base flex items-center gap-3">
+                      <span>{tx.type === "trade" ? `${tx.asset || tx.symbol || "Trade"} Trade` : tx.type.toUpperCase()}</span>
+                      {tx.type === "trade" && (
+                        <span className={cn("text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider", tx.tradeType === "WIN" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700")}>
+                          {tx.tradeType || "CLOSED"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-500 font-medium mt-1.5 flex flex-wrap gap-4 font-mono">
+                      {tx.type === "trade" && (
+                        <>
+                          <span>Entry: <strong className="text-slate-900">${tx.entryPrice?.toFixed(2)}</strong></span>
+                          <span>Exit: <strong className="text-slate-900">${tx.exitPrice?.toFixed(2)}</strong></span>
+                          <span>Investment: <strong className="text-slate-900">${tx.investmentAmount?.toFixed(2)}</strong></span>
+                        </>
+                      )}
+                      <span>Date: <strong className="text-slate-900">{tx.createdAt?.toDate?.()?.toLocaleString() || new Date().toLocaleString()}</strong></span>
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono font-black text-slate-900 text-base">{formatCurrency(tx.amount)}</div>
                   <div className={cn(
-                    "text-[10px] font-black uppercase tracking-widest mt-1",
-                    tx.status === "completed" ? "text-emerald-600" : tx.status === "pending" ? "text-amber-600" : "text-rose-600"
+                    "font-mono font-black text-base",
+                    tx.type === "trade" 
+                      ? (tx.tradeType === "WIN" ? "text-emerald-600" : "text-rose-600")
+                      : "text-slate-900"
                   )}>
+                    {tx.type === "trade" 
+                      ? `${tx.tradeType === "WIN" ? "+" : "-"}$${Math.abs(tx.profitOrLoss || tx.amount).toFixed(2)}`
+                      : formatCurrency(tx.amount)}
+                  </div>
+                  <div className="text-[10px] font-black uppercase tracking-widest mt-1 text-slate-400">
                     {tx.status}
                   </div>
                 </div>

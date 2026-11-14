@@ -414,6 +414,7 @@ export default function AdminDashboard() {
       await Promise.all([...chatDeletes, ...txDeletes]);
 
       await deleteDoc(doc(db, "users", id));
+      setUsers(prev => prev.filter(u => u.id !== id));
       
       toast.success("User and all associated data purged successfully", { id: "cascadeDel" });
       setConfirmDelete(null);
@@ -1018,7 +1019,28 @@ export default function AdminDashboard() {
                         </div>
                       )}
                       
-                      {tx.details && tx.type !== "withdraw" && (
+                      {tx.type === "trade" ? (
+                        <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 space-y-3 font-mono text-xs">
+                          <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest pb-1 border-b border-indigo-200/60 flex justify-between items-center">
+                            <span>TRADE AUDIT RECORD</span>
+                            <span className={cn("px-2.5 py-0.5 rounded-full font-black uppercase text-[10px]", tx.tradeType === "WIN" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700")}>
+                              {tx.tradeType || "CLOSED"}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-slate-700 font-medium">
+                            <div>Asset: <strong className="text-slate-900 font-bold">{tx.asset || tx.symbol}</strong></div>
+                            <div>Investment: <strong className="text-slate-900 font-bold">${tx.investmentAmount?.toFixed(2) || tx.amount?.toFixed(2)}</strong></div>
+                            <div>Entry Price: <strong className="text-slate-900 font-bold">${tx.entryPrice?.toFixed(2) || "N/A"}</strong></div>
+                            <div>Exit Price: <strong className="text-slate-900 font-bold">${tx.exitPrice?.toFixed(2) || "N/A"}</strong></div>
+                            <div className="col-span-2 pt-1 border-t border-indigo-100 flex justify-between">
+                              <span>Net Profit / Loss:</span>
+                              <strong className={cn("font-black", tx.profitOrLoss !== undefined ? (tx.profitOrLoss >= 0 ? "text-emerald-600" : "text-rose-600") : "text-slate-900")}>
+                                {tx.profitOrLoss !== undefined ? (tx.profitOrLoss >= 0 ? `+$${tx.profitOrLoss.toFixed(2)}` : `-$${Math.abs(tx.profitOrLoss).toFixed(2)}`) : "N/A"}
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
+                      ) : tx.details && tx.type !== "withdraw" && (
                         <div className="text-sm text-slate-500 font-medium bg-white/50 p-4 rounded-2xl border border-slate-100">{tx.details}</div>
                       )}
 

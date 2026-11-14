@@ -30,6 +30,12 @@ export interface Transaction {
   receipt?: string; // Base64 or URL
   userEmail?: string;
   userName?: string;
+  asset?: string;
+  tradeType?: "WIN" | "LOSS";
+  entryPrice?: number;
+  exitPrice?: number;
+  investmentAmount?: number;
+  profitOrLoss?: number;
 }
 
 export interface PlatformSettings {

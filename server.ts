@@ -336,33 +336,47 @@ async function startServer() {
         { s: 300, r: 40 }
       ].find((d: any) => d.s === seconds);
       const returnPercent = durationObj ? durationObj.r / 100 : 0.05;
-      const lossPercent = (seconds / 30) * 0.05;
-
-      const finalAmount = isWin 
-        ? (amount * (1 + returnPercent)) 
-        : (amount * (1 - lossPercent));
-
-      const profitVal = isWin ? (amount * returnPercent) : (amount * lossPercent);
-      const basePrice = 4200 + Math.random() * 100;
-      const entryPrice = Number(basePrice.toFixed(2));
-      const exitPrice = Number((basePrice * (isWin ? (1 + returnPercent) : (1 - lossPercent))).toFixed(2));
-      const percentage = (isWin ? returnPercent : -lossPercent) * 100;
-      const totalReturn = isWin ? (amount + profitVal) : Math.max(0, amount - profitVal);
 
       const currentBalance = existing.balance || 0;
-      const updatedBalance = Math.max(0, currentBalance - amount + finalAmount);
+      let profitVal = 0;
+      let updatedBalance = currentBalance;
+      let totalReturn = 0;
+
+      if (isWin) {
+        profitVal = Number((amount * returnPercent).toFixed(2));
+        updatedBalance = Number((currentBalance + profitVal).toFixed(2));
+        totalReturn = Number((amount + profitVal).toFixed(2));
+      } else {
+        profitVal = Number(amount); // loss amount
+        updatedBalance = Number((Math.max(0, currentBalance - amount)).toFixed(2));
+        totalReturn = 0;
+      }
+
       existing.balance = updatedBalance;
       localDb.users[uid] = existing;
+      saveLocalDb();
+
+      const basePrice = 4200 + Math.random() * 100;
+      const entryPrice = Number(basePrice.toFixed(2));
+      const exitPrice = Number((basePrice * (isWin ? (1 + returnPercent) : 0.95)).toFixed(2));
+      const percentage = isWin ? (returnPercent * 100) : -100;
 
       const tx = {
         id: "tx_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
         userId: uid,
         userEmail: existing.email || "",
+        userName: existing.fullName || existing.email?.split("@")[0] || "User",
         type: "trade",
-        amount: isWin ? finalAmount : amount * lossPercent,
+        asset: symbol.split(":").pop() || symbol,
+        tradeType: isWin ? "WIN" : "LOSS",
+        entryPrice,
+        exitPrice,
+        investmentAmount: Number(amount),
+        profitOrLoss: isWin ? profitVal : -Number(amount),
+        amount: isWin ? profitVal : Number(amount),
         status: "completed",
         symbol,
-        details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: " + (lossPercent * 100).toFixed(0) + "%"}`,
+        details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | Entry: $${entryPrice.toFixed(2)} | Exit: $${exitPrice.toFixed(2)} | Investment: $${Number(amount).toFixed(2)} | ${isWin ? "Profit: +" + profitVal.toFixed(2) : "Loss: -" + Number(amount).toFixed(2)} USDT`,
         createdAt: new Date()
       };
 
@@ -372,7 +386,7 @@ async function startServer() {
       res.json({ 
         success: true, 
         isWin, 
-        finalAmount, 
+        finalAmount: isWin ? (amount + profitVal) : 0, 
         profit: profitVal,
         percentage,
         entryPrice,
