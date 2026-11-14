@@ -206,10 +206,15 @@ export default function AdminDashboard() {
 
     fetchSettings();
 
-    // Listen to ALL support messages
-    const chatQ = query(collection(db, "support_messages"), orderBy("createdAt", "asc"));
-    const chatUnsub = onSnapshot(chatQ, (snapshot) => {
-      setAllMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportMessage)));
+    // Listen to ALL support messages (in-memory sorting to avoid index errors)
+    const chatUnsub = onSnapshot(collection(db, "support_messages"), (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportMessage));
+      msgs.sort((a: any, b: any) => {
+        const tA = a.createdAt?.toMillis?.() || a.createdAt?.toDate?.().getTime() || new Date(a.createdAt || 0).getTime();
+        const tB = b.createdAt?.toMillis?.() || b.createdAt?.toDate?.().getTime() || new Date(b.createdAt || 0).getTime();
+        return tA - tB;
+      });
+      setAllMessages(msgs);
     }, (err) => console.warn("chat listener suppressed:", err.message));
 
     return () => {

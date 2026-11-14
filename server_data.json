@@ -308,37 +308,21 @@
   ],
   "support": [
     {
-      "id": "msg_1794660873766",
+      "id": "msg_1794670299810",
       "userId": "test_user_chat_123",
       "senderId": "test_user_chat_123",
       "senderEmail": "user@gammixtrades.com",
       "text": "Hello, I need help with my deposit.",
       "isAdmin": false,
-      "createdAt": "2026-11-14T12:54:33.766Z"
+      "createdAt": "2026-11-14T15:31:39.810Z"
     },
     {
-      "id": "msg_admin_1794660873767",
+      "id": "msg_admin_1794670299810",
       "userId": "test_user_chat_123",
       "senderId": "admin",
       "text": "Hello! We have received your deposit request and are processing it.",
       "isAdmin": true,
-      "createdAt": "2026-11-14T12:54:33.767Z"
-    },
-    {
-      "id": "msg_e2e_1794660874933",
-      "userId": "e2e_user_1794660874931",
-      "senderId": "e2e_user_1794660874931",
-      "text": "Hello admin, please verify my account.",
-      "isAdmin": false,
-      "createdAt": "2026-11-14T12:54:34.933Z"
-    },
-    {
-      "id": "msg_e2e_reply_1794660874934",
-      "userId": "e2e_user_1794660874931",
-      "senderId": "admin",
-      "text": "Hello! Your account has been reviewed.",
-      "isAdmin": true,
-      "createdAt": "2026-11-14T12:54:34.934Z"
+      "createdAt": "2026-11-14T15:31:39.810Z"
     }
   ],
   "settings": {
