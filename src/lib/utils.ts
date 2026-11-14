@@ -152,3 +152,15 @@ export const handleFileUploadFlow = async (
   };
   reader.readAsDataURL(file);
 };
+
+export async function safeJson(res: Response) {
+  try {
+    const text = await res.text();
+    if (!text || !text.trim()) return {};
+    return JSON.parse(text);
+  } catch (e) {
+    console.warn("Failed to parse JSON response:", e);
+    return {};
+  }
+}
+

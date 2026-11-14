@@ -1,10 +1,10 @@
 {
-  "apiKey": "AIzaSyA3twyI544nJNoekeWxn0CA0roK8j3qq9I",
-  "authDomain": "simulation2222.firebaseapp.com",
-  "projectId": "simulation2222",
+  "apiKey": "AIzaSyCn41dYYrTXcSEcWcRTaXaZyrGiGEWy3yo",
+  "authDomain": "gammixtrades.firebaseapp.com",
+  "projectId": "gammixtrades",
   "firestoreDatabaseId": "(default)",
-  "storageBucket": "simulation2222.firebasestorage.app",
-  "messagingSenderId": "882532206192",
-  "appId": "1:882532206192:web:a84311a02d479a35d756b5",
-  "measurementId": "G-81HFP91PKC"
+  "storageBucket": "gammixtrades.firebasestorage.app",
+  "messagingSenderId": "1013537402788",
+  "appId": "1:1013537402788:web:27175f8a2eec769a661b31",
+  "measurementId": "G-CS6SYYTRKW"
 }

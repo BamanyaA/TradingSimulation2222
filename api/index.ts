@@ -18,7 +18,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 // Initialize Firebase Admin SDK with optional Service Account or Project ID
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "simulation2222" };
+  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "gammixtrades" };
   
   if (!admin.apps.length) {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -26,16 +26,16 @@ try {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
-          projectId: firebaseConfig.projectId || "simulation2222"
+          projectId: firebaseConfig.projectId || "gammixtrades"
         });
         console.log("Firebase Admin initialized with service account credentials.");
       } catch (saErr) {
         console.warn("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY, falling back to projectId init:", saErr);
-        admin.initializeApp({ projectId: firebaseConfig.projectId || "simulation2222" });
+        admin.initializeApp({ projectId: firebaseConfig.projectId || "gammixtrades" });
       }
     } else {
       admin.initializeApp({
-        projectId: firebaseConfig.projectId || "simulation2222"
+        projectId: firebaseConfig.projectId || "gammixtrades"
       });
     }
   }
@@ -122,7 +122,7 @@ app.post("/api/users/upsert", async (req, res) => {
         address: existing?.address || "",
         phoneNumber: existing?.phoneNumber || "",
         verificationDoc: existing?.verificationDoc || null,
-        balance: balance !== undefined ? balance : (existing?.balance !== undefined ? existing?.balance : (isAdmin ? 31050 : 0)),
+        balance: (existing?.balance !== undefined) ? existing.balance : (balance !== undefined ? balance : (isAdmin ? 31050 : 0)),
         role: role || existing?.role || (isAdmin ? "admin" : "user"),
         createdAt: existing?.createdAt || admin.firestore.FieldValue.serverTimestamp(),
         verificationStatus: verificationStatus || existing?.verificationStatus || (isAdmin ? "verified" : "unsubmitted"),
@@ -296,18 +296,33 @@ app.post("/api/trade/settle", async (req, res) => {
         { s: 300, r: 40 }
       ].find((d: any) => d.s === seconds);
       const returnPercent = durationObj ? durationObj.r / 100 : 0.05;
-      const lossPercent = (seconds / 30) * 0.05;
+      const currentBalance = Number(userData.balance || 0);
 
-      const finalAmount = isWin ? (amount * (1 + returnPercent)) : (amount * (1 - lossPercent));
-      const profitVal = isWin ? (amount * returnPercent) : (amount * lossPercent);
+      let updatedBalance = currentBalance;
+      let profitVal = 0;
+      let finalAmount = 0;
+      let percentage = 0;
+      let totalReturn = 0;
+
+      if (isWin) {
+        profitVal = Number((amount * returnPercent).toFixed(2));
+        updatedBalance = Number((currentBalance + profitVal).toFixed(2));
+        finalAmount = Number((amount + profitVal).toFixed(2));
+        percentage = returnPercent * 100;
+        totalReturn = Number((amount + profitVal).toFixed(2));
+      } else {
+        // Lost 5% of CURRENT capital (capital - 5%)
+        profitVal = Number((currentBalance * 0.05).toFixed(2));
+        updatedBalance = Number((Math.max(0, currentBalance - profitVal)).toFixed(2));
+        finalAmount = Number((amount * 0.95).toFixed(2));
+        percentage = -5;
+        totalReturn = 0;
+      }
+
       const basePrice = 4200 + Math.random() * 100;
       const entryPrice = Number(basePrice.toFixed(2));
-      const exitPrice = Number((basePrice * (isWin ? (1 + returnPercent) : (1 - lossPercent))).toFixed(2));
-      const percentage = (isWin ? returnPercent : -lossPercent) * 100;
-      const totalReturn = isWin ? (amount + profitVal) : Math.max(0, amount - profitVal);
+      const exitPrice = Number((basePrice * (isWin ? (1 + returnPercent) : 0.95)).toFixed(2));
 
-      const currentBalance = userData.balance || 0;
-      const updatedBalance = Math.max(0, currentBalance - amount + finalAmount);
       await userRef.update({ balance: updatedBalance });
 
       const txRef = db.collection("transactions").doc();
@@ -316,10 +331,10 @@ app.post("/api/trade/settle", async (req, res) => {
         userId: uid,
         userEmail: userData.email || "",
         type: "trade",
-        amount: isWin ? finalAmount : amount * lossPercent,
+        amount: isWin ? finalAmount : profitVal,
         status: "completed",
         symbol,
-        details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: " + (lossPercent * 100).toFixed(0) + "%"}`,
+        details: `${isWin ? "WIN" : "LOSS"} | Asset: ${symbol.split(":").pop()} | ${seconds}s Duration | ${isWin ? "Profit: " + (returnPercent * 100).toFixed(0) + "%" : "Loss: 5% of Capital (-$" + profitVal.toFixed(2) + ")"}`,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       };
       await txRef.set(txData);
@@ -591,11 +606,9 @@ app.post("/api/withdraw", async (req, res) => {
         return res.status(400).json({ error: "Insufficient balance" });
       }
 
-      const newBalance = Number((currentBalance - Number(amount)).toFixed(2));
       const fullName = withdrawName.trim() || userData.fullName || "User";
 
-      await userRef.set({ balance: newBalance, fullName }, { merge: true });
-
+      // Do NOT reduce balance automatically on request. Admin manages withdrawal approval.
       const txRef = db.collection("transactions").doc();
       const tx = {
         id: txRef.id,
@@ -610,11 +623,27 @@ app.post("/api/withdraw", async (req, res) => {
       };
       await txRef.set(tx);
 
-      return res.json({ success: true, balance: newBalance, transaction: tx, profile: { ...userData, balance: newBalance, fullName } });
+      return res.json({ success: true, balance: currentBalance, transaction: tx, profile: { ...userData, balance: currentBalance, fullName } });
     }
     res.status(500).json({ error: "Database unavailable" });
   } catch (error) {
     console.error("Error in /api/withdraw:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+  }
+});
+
+app.post("/api/admin/update-settings", async (req, res) => {
+  try {
+    const settings = req.body;
+    if (!settings) return res.status(400).json({ error: "Missing settings data" });
+
+    if (db) {
+      await db.collection("settings").doc("addresses").set(settings, { merge: true });
+      return res.json({ success: true });
+    }
+    res.status(500).json({ error: "Database unavailable" });
+  } catch (error) {
+    console.error("Error in /api/admin/update-settings:", error);
     res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
   }
 });

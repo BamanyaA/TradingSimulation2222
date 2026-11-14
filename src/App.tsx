@@ -5,6 +5,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { UserProfile } from "./types";
+import { safeJson } from "./lib/utils";
 
 // Pages
 import Home from "./pages/Home";
@@ -29,7 +30,7 @@ function AppContent() {
     try {
       const res = await fetch(`/api/users/profile?uid=${uid}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJson(res);
         if (data.profile) {
           setProfile({ id: uid, ...data.profile } as UserProfile);
           return;
@@ -83,7 +84,16 @@ function AppContent() {
                 tradeAction: true
               };
               setProfile({ id: firebaseUser.uid, ...newProfile } as any);
-              setDoc(docRef, newProfile).catch(() => {});
+              fetch("/api/users/upsert", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  role: isAdminEmail ? "admin" : "user",
+                  balance: isAdminEmail ? 31050 : 0
+                })
+              }).catch(() => {});
             }
           }, (err) => {
             console.warn("Profile listener graceful fallback active:", err.message);

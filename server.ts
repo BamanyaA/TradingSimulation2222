@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 let adminApp: admin.app.App | undefined = undefined;
 try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "simulation2222" };
+  const firebaseConfig = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, "utf8")) : { projectId: "gammixtrades" };
   
   if (!admin.apps.length) {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -27,14 +27,14 @@ try {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
         adminApp = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
-          projectId: firebaseConfig.projectId || "simulation2222"
+          projectId: firebaseConfig.projectId || "gammixtrades"
         });
       } catch (saErr) {
-        adminApp = admin.initializeApp({ projectId: firebaseConfig.projectId || "simulation2222" });
+        adminApp = admin.initializeApp({ projectId: firebaseConfig.projectId || "gammixtrades" });
       }
     } else {
       adminApp = admin.initializeApp({
-        projectId: firebaseConfig.projectId || "simulation2222"
+        projectId: firebaseConfig.projectId || "gammixtrades"
       });
     }
   } else {
@@ -410,8 +410,9 @@ async function startServer() {
               updatedBalance = Number((currentBalance + profitVal).toFixed(2));
               totalReturn = Number((amount + profitVal).toFixed(2));
             } else {
-              profitVal = Number(amount);
-              updatedBalance = Number((Math.max(0, currentBalance - amount)).toFixed(2));
+              const lossPercent = (seconds / 30) * 0.05;
+              profitVal = Number((amount * lossPercent).toFixed(2));
+              updatedBalance = Number((Math.max(0, currentBalance - profitVal)).toFixed(2));
               totalReturn = 0;
             }
 
@@ -472,7 +473,7 @@ async function startServer() {
           });
           return;
         } catch (txErr) {
-          console.warn("Firestore transaction fallback to localDb:", txErr);
+          // Silent graceful fallback to localDb
         }
       }
 
@@ -636,7 +637,7 @@ async function startServer() {
         address: existing.address || "",
         phoneNumber: existing.phoneNumber || "",
         verificationDoc: existing.verificationDoc || null,
-        balance: balance !== undefined ? balance : (existing.balance !== undefined ? existing.balance : (isAdmin ? 31050 : 0)),
+        balance: (existing.balance !== undefined) ? existing.balance : (balance !== undefined ? balance : (isAdmin ? 31050 : 0)),
         role: role || existing.role || (isAdmin ? "admin" : "user"),
         createdAt: existing.createdAt || new Date(),
         verificationStatus: verificationStatus || existing.verificationStatus || (isAdmin ? "verified" : "unsubmitted"),
@@ -764,13 +765,7 @@ async function startServer() {
         return res.status(400).json({ error: "Insufficient balance" });
       }
 
-      existing.balance = Number((currentBalance - Number(amount)).toFixed(2));
-      if (!existing.fullName) {
-        existing.fullName = withdrawName;
-      }
-      localDb.users[uid] = existing;
-      saveLocalDb();
-
+      // Do NOT reduce balance automatically on request. Admin manages withdrawal approval.
       const tx = {
         id: "tx_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
         userId: uid,
@@ -789,7 +784,6 @@ async function startServer() {
       if (admin.apps.length) {
         try {
           const fsDb = getFirestore();
-          await fsDb.collection("users").doc(uid).set({ balance: existing.balance, fullName: existing.fullName }, { merge: true });
           await fsDb.collection("transactions").doc(tx.id).set({
             ...tx,
             createdAt: admin.firestore.Timestamp.fromDate(new Date())
@@ -799,7 +793,7 @@ async function startServer() {
         }
       }
 
-      res.json({ success: true, balance: existing.balance, transaction: tx, profile: existing });
+      res.json({ success: true, balance: currentBalance, transaction: tx, profile: existing });
     } catch (error) {
       console.error("Error in /api/withdraw:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });

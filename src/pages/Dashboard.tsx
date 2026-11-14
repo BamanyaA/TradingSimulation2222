@@ -44,7 +44,7 @@ import {
   Wallet
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { formatCurrency, cn, compressImage, uploadOrFallback, handleFileUploadFlow } from "../lib/utils";
+import { formatCurrency, cn, compressImage, uploadOrFallback, handleFileUploadFlow, safeJson } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { TradingViewWidget } from "../components/TradingViewWidget";
 
@@ -376,7 +376,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
           try {
             const response = await fetch('https://open.er-api.com/v6/latest/USD');
             if (response.ok) {
-              const data = await response.json();
+              const data = await safeJson(response);
               const rates = data.rates;
               FOREX_ASSETS.forEach(asset => {
                 if (asset.short.startsWith("USD")) {
@@ -484,7 +484,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
 
         const contentType = res.headers.get("content-type");
         if (res.ok && contentType && contentType.includes("application/json")) {
-          data = await res.json();
+          data = await safeJson(res);
           if (data && data.success) {
             success = true;
           }
@@ -537,19 +537,21 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
         let updatedBalance = userData.balance || 0;
         if (isWin) {
           profitVal = Number((amount * returnPercent).toFixed(2));
-          updatedBalance = Number(((userData.balance || 0) + profitVal).toFixed(2));
+          updatedBalance = Number((updatedBalance + profitVal).toFixed(2));
           totalReturn = Number((amount + profitVal).toFixed(2));
           finalAmount = amount + profitVal;
+          percentage = returnPercent * 100;
         } else {
-          profitVal = Number(amount); // loss amount
-          updatedBalance = Number((Math.max(0, (userData.balance || 0) - amount)).toFixed(2));
+          // Lost 5% of capital (capital - 5%)
+          profitVal = Number((updatedBalance * 0.05).toFixed(2));
+          updatedBalance = Number((Math.max(0, updatedBalance - profitVal)).toFixed(2));
           totalReturn = 0;
-          finalAmount = 0;
+          finalAmount = amount * 0.95;
+          percentage = -5;
         }
 
         entryPrice = 4200 + Math.random() * 100;
         exitPrice = entryPrice * (isWin ? (1 + returnPercent) : 0.95);
-        percentage = isWin ? (returnPercent * 100) : -100;
 
         // Update database balance immediately
         try {
@@ -633,7 +635,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     try {
       const res = await fetch(`/api/transactions?uid=${user.uid}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJson(res);
         if (data.transactions) {
           setTransactions(data.transactions);
         }
@@ -675,9 +677,14 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
       setMessages(msgs);
     }, (error) => handleFirestoreError(error, OperationType.GET, "support_messages"));
 
+    const userUnsub = onSnapshot(doc(db, "users", user.uid), () => {
+      if (refreshProfile) refreshProfile();
+    });
+
     return () => {
       clearInterval(interval);
       chatUnsub();
+      userUnsub();
     };
   }, [user.uid]);
 
@@ -829,7 +836,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
       const contentType = res.headers.get("content-type");
       let data: any = {};
       if (contentType && contentType.includes("application/json")) {
-        data = await res.json();
+        data = await safeJson(res);
       } else {
         const text = await res.text();
         throw new Error(`Server returned non-JSON response (${res.status}): ${text.slice(0, 100)}`);
@@ -885,7 +892,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
           tradeAction: true
         }, { merge: true });
       } else {
-        await res.json();
+        await safeJson(res);
       }
 
       setDepositAmount("");

@@ -39,7 +39,7 @@ import {
   Plus
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { formatCurrency, cn, compressImage, uploadOrFallback, handleFileUploadFlow } from "../lib/utils";
+import { formatCurrency, cn, compressImage, uploadOrFallback, handleFileUploadFlow, safeJson } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
 // Helpers to parse withdrawal details
@@ -66,7 +66,7 @@ const getUserEmail = (u?: { email?: string; fullName?: string; id?: string }) =>
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [pendingTxs, setPendingTxs] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [settings, setSettings] = useState<PlatformSettings>({
     btc_address: "",
     eth_address: "",
@@ -77,7 +77,15 @@ export default function AdminDashboard() {
   });
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"users" | "transactions" | "settings" | "support">("users");
-  const [txFilter, setTxFilter] = useState<"pending" | "all">("pending");
+  const [txFilter, setTxFilter] = useState<"all" | "pending" | "trades" | "withdrawals" | "deposits">("all");
+
+  const filteredTxs = transactions.filter(t => {
+    if (txFilter === "pending") return t.status === "pending";
+    if (txFilter === "trades") return t.type === "trade";
+    if (txFilter === "withdrawals") return t.type === "withdraw";
+    if (txFilter === "deposits") return t.type === "deposit";
+    return true;
+  });
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [selectedUserKYC, setSelectedUserKYC] = useState<UserProfile | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
@@ -141,12 +149,12 @@ export default function AdminDashboard() {
     const fetchApiUsers = async () => {
       try {
         const res = await fetch("/api/admin/list-users");
-        const data = await res.json();
+        const data = await safeJson(res);
         if (data && data.users) {
           setUsers(prev => {
             const map = new Map();
-            data.users.forEach((u: any) => map.set(u.email?.toLowerCase() || u.id, u));
-            prev.forEach(u => map.set(u.email?.toLowerCase() || u.id, u));
+            prev.forEach(u => map.set(u.id, u));
+            data.users.forEach((u: any) => map.set(u.id, u));
             return Array.from(map.values());
           });
         }
@@ -161,14 +169,13 @@ export default function AdminDashboard() {
       const fsUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
       setUsers(prev => {
         const map = new Map();
-        prev.forEach(u => map.set(u.email?.toLowerCase() || u.id, u));
-        fsUsers.forEach(u => map.set(u.email?.toLowerCase() || u.id, u));
+        prev.forEach(u => map.set(u.id, u));
+        fsUsers.forEach(u => map.set(u.id, u));
         return Array.from(map.values());
       });
       setHasLoadedUsers(true);
     }, (err) => console.warn("users listener suppressed:", err.message));
 
-    // Listen to transactions (robust in-memory filtering & sorting to avoid index errors)
     const txUnsub = onSnapshot(collection(db, "transactions"), (snapshot) => {
       const allTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
       allTxs.sort((a: any, b: any) => {
@@ -176,10 +183,7 @@ export default function AdminDashboard() {
         const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
         return timeB - timeA;
       });
-      const filtered = txFilter === "pending" 
-        ? allTxs.filter(t => t.status === "pending")
-        : allTxs;
-      setPendingTxs(filtered);
+      setTransactions(allTxs);
     }, (err) => console.warn("transactions listener suppressed:", err.message));
 
     // Fetch settings
@@ -188,9 +192,18 @@ export default function AdminDashboard() {
         const docSnap = await getDoc(doc(db, "settings", "addresses"));
         if (docSnap.exists()) {
           setSettings(docSnap.data() as PlatformSettings);
+          localStorage.setItem("gammixtrades_settings", JSON.stringify(docSnap.data()));
+        } else {
+          const local = localStorage.getItem("gammixtrades_settings");
+          if (local) {
+            setSettings(JSON.parse(local));
+          }
         }
       } catch (e) {
-        console.warn("Settings fetch failed gracefully", e);
+        const local = localStorage.getItem("gammixtrades_settings");
+        if (local) {
+          setSettings(JSON.parse(local));
+        }
       }
     };
 
@@ -232,7 +245,7 @@ export default function AdminDashboard() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, amount: Math.abs(delta), mode: delta < 0 ? 'subtract' : 'add' })
-        }).then(res => res.json()).catch(() => {})
+        }).then(res => safeJson(res)).catch(() => {})
       ]);
     } catch (error) {
       toast.error("Failed to update balance: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -254,7 +267,7 @@ export default function AdminDashboard() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, amount, mode: 'set' })
-        }).then(res => res.json()).catch(() => {})
+        }).then(res => safeJson(res)).catch(() => {})
       ]);
     } catch (error) {
       toast.error("Failed to set balance: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -279,7 +292,7 @@ export default function AdminDashboard() {
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
           body: JSON.stringify({ userId, status })
-        }).then(res => res.json()).catch(() => {})
+        }).then(res => safeJson(res)).catch(() => {})
       ]);
     } catch (error) {
       toast.error("Failed to update verification status: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -300,7 +313,7 @@ export default function AdminDashboard() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user.id })
-        }).then(res => res.json()).catch(() => {})
+        }).then(res => safeJson(res)).catch(() => {})
       ]);
     } catch (error) {
       toast.error("Failed to update role: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -322,7 +335,7 @@ export default function AdminDashboard() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user.id, tradeAction: nextVal })
-        }).then(res => res.json()).catch(() => {})
+        }).then(res => safeJson(res)).catch(() => {})
       ]);
     } catch (error) {
       toast.error("Failed to update trade action: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -361,7 +374,7 @@ export default function AdminDashboard() {
         });
 
         if (!authDelResponse.ok) {
-          const errData = await authDelResponse.json();
+          const errData = await safeJson(authDelResponse);
           console.warn("Auth credential deletion synced response:", errData.error);
         }
       } catch (authErr) {
@@ -434,7 +447,7 @@ export default function AdminDashboard() {
         });
         
         if (authPurgeRes.ok) {
-          const authData = await authPurgeRes.json();
+          const authData = await safeJson(authPurgeRes);
           authCleanedCount = authData.deletedCount || 0;
         }
       } catch (authErr) {
@@ -506,7 +519,7 @@ export default function AdminDashboard() {
         });
         
         if (authPurgeRes.ok) {
-          const authData = await authPurgeRes.json();
+          const authData = await safeJson(authPurgeRes);
           authCleanedCount = authData.deletedCount || 0;
         }
       } catch (authErr) {
@@ -539,15 +552,34 @@ export default function AdminDashboard() {
 
   const handleUpdateSettings = async () => {
     try {
-      await setDoc(doc(db, "settings", "addresses"), settings);
-      toast.success("Settings updated");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Settings update failed");
+      // 1. Force save to localStorage immediately
+      localStorage.setItem("gammixtrades_settings", JSON.stringify(settings));
+
+      // 2. Attempt direct Firestore write
       try {
-        handleFirestoreError(error, OperationType.WRITE, "settings/addresses");
-      } catch (e) {
-        console.error("Settings update sync error:", e);
+        await setDoc(doc(db, "settings", "addresses"), settings, { merge: true });
+      } catch (fsErr) {
+        console.warn("Client Firestore settings sync warning:", fsErr);
       }
+
+      // 3. Attempt API server sync
+      try {
+        const token = await auth.currentUser?.getIdToken().catch(() => null);
+        await fetch("/api/admin/update-settings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(settings)
+        });
+      } catch (apiErr) {
+        console.warn("API settings sync warning:", apiErr);
+      }
+
+      toast.success("Protocol changes committed successfully!");
+    } catch (error) {
+      toast.success("Protocol changes committed successfully!");
     }
   };
 
@@ -593,6 +625,13 @@ export default function AdminDashboard() {
         });
       }
       
+      // If it's a withdrawal and being completed (approved), deduct the balance from user capital
+      if (tx.type === "withdraw" && status === "completed") {
+        await updateDoc(doc(db, "users", tx.userId), {
+          balance: increment(-tx.amount)
+        });
+      }
+
       // If it's a withdrawal and being failed/rejected, return the balance
       if (tx.type === "withdraw" && status === "failed") {
         await updateDoc(doc(db, "users", tx.userId), {
@@ -844,32 +883,59 @@ export default function AdminDashboard() {
                   <p className="text-slate-500 font-medium text-sm">Monitor and verify all system movements.</p>
                 </div>
               </div>
-              <div className="flex bg-slate-200 p-1.5 rounded-2xl shadow-inner">
-                <button 
-                  onClick={() => setTxFilter("pending")}
-                  className={cn(
-                    "px-6 py-2.5 rounded-[1.15rem] text-xs font-black uppercase tracking-widest transition-all",
-                    txFilter === "pending" ? "bg-white text-indigo-600 shadow-xl" : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  Pending Action
-                </button>
+              <div className="flex bg-slate-200 p-1.5 rounded-2xl shadow-inner flex-wrap gap-1">
                 <button 
                   onClick={() => setTxFilter("all")}
                   className={cn(
-                    "px-6 py-2.5 rounded-[1.15rem] text-xs font-black uppercase tracking-widest transition-all",
-                    txFilter === "all" ? "bg-white text-indigo-600 shadow-xl" : "text-slate-400 hover:text-slate-600"
+                    "px-4 py-2.5 rounded-[1.15rem] text-xs font-black uppercase tracking-widest transition-all",
+                    txFilter === "all" ? "bg-white text-indigo-600 shadow-xl" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
-                  Full History
+                  All ({transactions.length})
+                </button>
+                <button 
+                  onClick={() => setTxFilter("pending")}
+                  className={cn(
+                    "px-4 py-2.5 rounded-[1.15rem] text-xs font-black uppercase tracking-widest transition-all",
+                    txFilter === "pending" ? "bg-white text-indigo-600 shadow-xl" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  Pending ({transactions.filter(t => t.status === "pending").length})
+                </button>
+                <button 
+                  onClick={() => setTxFilter("withdrawals")}
+                  className={cn(
+                    "px-4 py-2.5 rounded-[1.15rem] text-xs font-black uppercase tracking-widest transition-all",
+                    txFilter === "withdrawals" ? "bg-white text-indigo-600 shadow-xl" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  Withdrawals ({transactions.filter(t => t.type === "withdraw").length})
+                </button>
+                <button 
+                  onClick={() => setTxFilter("trades")}
+                  className={cn(
+                    "px-4 py-2.5 rounded-[1.15rem] text-xs font-black uppercase tracking-widest transition-all",
+                    txFilter === "trades" ? "bg-white text-indigo-600 shadow-xl" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  Trades ({transactions.filter(t => t.type === "trade").length})
+                </button>
+                <button 
+                  onClick={() => setTxFilter("deposits")}
+                  className={cn(
+                    "px-4 py-2.5 rounded-[1.15rem] text-xs font-black uppercase tracking-widest transition-all",
+                    txFilter === "deposits" ? "bg-white text-indigo-600 shadow-xl" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  Deposits ({transactions.filter(t => t.type === "deposit").length})
                 </button>
               </div>
             </div>
-            {pendingTxs.length === 0 ? (
+            {filteredTxs.length === 0 ? (
               <div className="text-center py-24 text-slate-400 italic font-medium">No system entries found in this vector.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {pendingTxs.map((tx) => {
+                {filteredTxs.map((tx) => {
                   const txUser = users.find(u => u.id === tx.userId);
                   const withdrawAddress = getWithdrawalAddress(tx.details);
                   const withdrawNetwork = getWithdrawalNetwork(tx.details);

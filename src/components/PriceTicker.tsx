@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn, safeJson } from "../lib/utils";
 
 interface CryptoTickerItem {
   symbol: string;
@@ -46,7 +46,7 @@ export default function PriceTicker() {
       try {
         const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
         if (!res.ok) throw new Error("Failed to fetch live prices");
-        const data = await res.json();
+        const data = await safeJson(res);
         
         if (!isMounted) return;
 
