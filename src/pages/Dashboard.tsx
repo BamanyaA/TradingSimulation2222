@@ -455,12 +455,15 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     return () => clearInterval(timer);
   }, [isTrading, timeLeft]);
 
-  // Store trade details for finalization
-  const tradeDetailsRef = React.useRef<{ amount: number; seconds: number; symbol: string } | null>(null);
+  const isSettlingRef = React.useRef(false);
+  const tradeDetailsRef = React.useRef<{ tradeId: string; amount: number; seconds: number; symbol: string } | null>(null);
 
   const finalizeTrade = async () => {
-    if (!tradeDetailsRef.current || !user) return;
-    const { amount, seconds, symbol } = tradeDetailsRef.current;
+    if (!tradeDetailsRef.current || isSettlingRef.current || !user) return;
+    isSettlingRef.current = true;
+    const details = tradeDetailsRef.current;
+    tradeDetailsRef.current = null;
+    const { tradeId, amount, seconds, symbol } = details;
 
     try {
       let success = false;
@@ -474,7 +477,8 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
             uid: user.uid,
             amount,
             seconds,
-            symbol
+            symbol,
+            tradeId
           })
         });
 
@@ -611,6 +615,7 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
       toast.dismiss("trade");
       console.warn("Trade settlement handled securely:", error);
     } finally {
+      isSettlingRef.current = false;
       setIsTrading(false);
       setTimeLeft(null);
       tradeDetailsRef.current = null;
@@ -694,7 +699,8 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     setShowTradeConfirm(false);
     setIsTrading(true);
     setTimeLeft(selectedDuration);
-    tradeDetailsRef.current = { amount, seconds: selectedDuration, symbol: selectedAsset.symbol };
+    const tradeId = "tr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+    tradeDetailsRef.current = { tradeId, amount, seconds: selectedDuration, symbol: selectedAsset.symbol };
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {

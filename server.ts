@@ -320,9 +320,27 @@ async function startServer() {
   // Endpoint to settle trade outcome using localDb store
   app.post("/api/trade/settle", async (req, res) => {
     try {
-      const { uid, amount, seconds, symbol } = req.body;
+      const { uid, amount, seconds, symbol, tradeId } = req.body;
       if (!uid || !amount || !seconds || !symbol) {
         return res.status(400).json({ error: "Missing required trade fields" });
+      }
+
+      if (tradeId) {
+        const existingTx = localDb.transactions.find((t: any) => t.tradeId === tradeId);
+        if (existingTx) {
+          const userObj = localDb.users[uid];
+          return res.json({
+            success: true,
+            isWin: existingTx.tradeType === "WIN",
+            profit: Math.abs(existingTx.profitOrLoss),
+            percentage: existingTx.tradeType === "WIN" ? 5 : -100,
+            entryPrice: existingTx.entryPrice,
+            exitPrice: existingTx.exitPrice,
+            balance: userObj?.balance || 0,
+            profile: userObj,
+            duplicate: true
+          });
+        }
       }
 
       const existing = localDb.users[uid];
@@ -368,6 +386,7 @@ async function startServer() {
 
       const tx = {
         id: "tx_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
+        tradeId: tradeId || ("tr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7)),
         userId: uid,
         userEmail: existing.email || "",
         userName: existing.fullName || existing.email?.split("@")[0] || "User",
