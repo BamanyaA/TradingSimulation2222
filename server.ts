@@ -388,6 +388,19 @@ async function startServer() {
       localDb.transactions.unshift(tx);
       saveLocalDb();
 
+      if (admin.apps.length) {
+        try {
+          const fsDb = getFirestore();
+          await fsDb.collection("users").doc(uid).set({ balance: updatedBalance }, { merge: true });
+          await fsDb.collection("transactions").doc(tx.id).set({
+            ...tx,
+            createdAt: admin.firestore.Timestamp.fromDate(new Date())
+          });
+        } catch (fsSyncErr) {
+          console.warn("Firestore sync during trade settle warning:", fsSyncErr);
+        }
+      }
+
       res.json({ 
         success: true, 
         isWin, 
