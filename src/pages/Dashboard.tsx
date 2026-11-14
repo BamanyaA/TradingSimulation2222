@@ -814,42 +814,63 @@ export default function Dashboard({ user, profile, refreshProfile }: DashboardPr
     }
 
     try {
-      const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, {
-        balance: increment(-amount)
-      });
+      let success = false;
+      try {
+        const res = await fetch("/api/withdraw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            amount,
+            withdrawName: withdrawName.trim(),
+            withdrawAddress: withdrawAddress.trim(),
+            withdrawType
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          success = true;
+          const userDocRef = doc(db, "users", user.uid);
+          await updateDoc(userDocRef, { balance: data.balance, fullName: withdrawName.trim() });
+          if (data.transaction) {
+            await setDoc(doc(db, "transactions", data.transaction.id), {
+              ...data.transaction,
+              createdAt: serverTimestamp()
+            });
+          }
+        }
+      } catch (apiErr) {
+        console.warn("API withdraw network fallback:", apiErr);
+      }
 
-      // Create the withdrawal transaction
-      await addDoc(collection(db, "transactions"), {
-        userId: user.uid,
-        userEmail: user.email || "",
-        userName: withdrawName.trim(),
-        type: "withdraw",
-        amount: amount,
-        status: "pending",
-        details: `Name: ${withdrawName.trim()} | Wallet: ${withdrawAddress.trim()} | Network: ${withdrawType}`,
-        createdAt: serverTimestamp(),
-      });
-
-      // Automatically update the user profile fullName if it was not previously set
-      if (profile && !profile.fullName) {
+      if (!success) {
+        const userDocRef = doc(db, "users", user.uid);
         await updateDoc(userDocRef, {
+          balance: increment(-amount),
           fullName: withdrawName.trim()
+        });
+
+        await addDoc(collection(db, "transactions"), {
+          userId: user.uid,
+          userEmail: user.email || "",
+          userName: withdrawName.trim(),
+          type: "withdraw",
+          amount: amount,
+          status: "pending",
+          details: `Name: ${withdrawName.trim()} | Wallet: ${withdrawAddress.trim()} | Network: ${withdrawType}`,
+          createdAt: serverTimestamp(),
         });
       }
 
       setWithdrawAmount("");
       setWithdrawAddress("");
       setShowWithdrawModal(false);
-      toast.success("Withdrawal request submitted");
+      toast.success("Withdrawal request submitted successfully!");
       refreshProfile();
+      if (fetchTransactions) fetchTransactions();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Withdrawal failed");
-      try {
-        handleFirestoreError(error, OperationType.WRITE, "transactions");
-      } catch (e) {
-        console.error("Withdrawal sync error:", e);
-      }
     }
   };
 

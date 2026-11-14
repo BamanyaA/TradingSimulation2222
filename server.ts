@@ -665,6 +665,73 @@ async function startServer() {
     }
   });
 
+  // Endpoint for user withdrawal submission
+  app.post("/api/withdraw", async (req, res) => {
+    try {
+      const { uid, email, amount, withdrawName, withdrawAddress, withdrawType } = req.body;
+      if (!uid || amount === undefined || isNaN(amount) || amount <= 0 || !withdrawName || !withdrawAddress) {
+        return res.status(400).json({ error: "Missing required withdrawal fields or invalid amount" });
+      }
+
+      let existing = localDb.users[uid];
+      if (!existing) {
+        existing = {
+          id: uid,
+          email: email || "",
+          fullName: withdrawName,
+          balance: 0,
+          role: "user",
+          tradeAction: true
+        };
+      }
+
+      const currentBalance = existing.balance || 0;
+      if (currentBalance < Number(amount)) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      existing.balance = Number((currentBalance - Number(amount)).toFixed(2));
+      if (!existing.fullName) {
+        existing.fullName = withdrawName;
+      }
+      localDb.users[uid] = existing;
+      saveLocalDb();
+
+      const tx = {
+        id: "tx_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
+        userId: uid,
+        userEmail: email || existing.email || "",
+        userName: withdrawName.trim(),
+        type: "withdraw",
+        amount: Number(amount),
+        status: "pending",
+        details: `Name: ${withdrawName.trim()} | Wallet: ${withdrawAddress.trim()} | Network: ${withdrawType || "USDT"}`,
+        createdAt: new Date()
+      };
+
+      localDb.transactions.unshift(tx);
+      saveLocalDb();
+
+      if (admin.apps.length) {
+        try {
+          const fsDb = getFirestore();
+          await fsDb.collection("users").doc(uid).set({ balance: existing.balance, fullName: existing.fullName }, { merge: true });
+          await fsDb.collection("transactions").doc(tx.id).set({
+            ...tx,
+            createdAt: admin.firestore.Timestamp.fromDate(new Date())
+          });
+        } catch (e) {
+          // silent catch
+        }
+      }
+
+      res.json({ success: true, balance: existing.balance, transaction: tx, profile: existing });
+    } catch (error) {
+      console.error("Error in /api/withdraw:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+    }
+  });
+
   // Endpoint to get user transactions from localDb store
   app.get("/api/transactions", (req, res) => {
     try {
