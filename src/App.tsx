@@ -48,10 +48,6 @@ function AppContent() {
   useEffect(() => {
     if (!user) return;
     fetchProfile(user.uid);
-    const interval = setInterval(() => {
-      fetchProfile(user.uid);
-    }, 3000);
-    return () => clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
