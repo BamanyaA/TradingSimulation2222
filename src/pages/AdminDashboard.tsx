@@ -65,17 +65,7 @@ const getUserEmail = (u?: { email?: string; fullName?: string; id?: string }) =>
 };
 
 export default function AdminDashboard() {
-  const [users, setUsers] = useState<UserProfile[]>([
-    { id: "uC4UmVowDjU7XIuWNBwVmfOMDyO2", email: "customer-uC4UmVowDjU@gmail.com", fullName: "Customer Operator", address: "", phoneNumber: "", balance: 31050, role: "user", verificationStatus: "verified", isVerified: true, tradeAction: true, createdAt: new Date() },
-    { id: "hQ1Q5rrJZfRGJKF1JawYLHQzMid2", email: "yyyyyggggg@gmail.com", fullName: "Yyyyyggggg", address: "", phoneNumber: "", balance: 0, role: "user", verificationStatus: "verified", isVerified: true, tradeAction: true, createdAt: new Date() },
-    { id: "s8HZY5FLl1SAgYkfzQVDnc17iu1", email: "mm@gmail.com", fullName: "Mm", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "verified", isVerified: true, tradeAction: true, createdAt: new Date() },
-    { id: "user_nnnn_1", email: "nnnn@gmail.com", fullName: "Nnnn", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
-    { id: "user_bezat_2", email: "bezat1922@gmail.com", fullName: "Bezat", address: "", phoneNumber: "", balance: 0, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
-    { id: "user_ii_3", email: "ii@gmail.com", fullName: "Ii", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
-    { id: "user_nn_4", email: "nn@gmail.com", fullName: "Nn", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
-    { id: "user_zz_5", email: "zz@gmail.com", fullName: "Zz", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
-    { id: "user_vv_6", email: "vv@gmail.com", fullName: "Vv", address: "", phoneNumber: "", balance: 1000, role: "user", verificationStatus: "unsubmitted", isVerified: false, tradeAction: true, createdAt: new Date() },
-  ] as UserProfile[]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [pendingTxs, setPendingTxs] = useState<Transaction[]>([]);
   const [settings, setSettings] = useState<PlatformSettings>({
     btc_address: "",
@@ -545,41 +535,7 @@ export default function AdminDashboard() {
 
 
 
-  useEffect(() => {
-    if (hasLoadedUsers && auth.currentUser && auth.currentUser.email === "girmaeden37@gmail.com") {
-      // Auto-provision requested customer profile if missing in database
-      const targetUID = "uC4UmVowDjU7XIuWNBwVmfOMDyO2";
-      const hasTarget = users.some(u => u.id === targetUID);
-      if (!hasTarget) {
-        console.log("UID uC4UmVowDjU7XIuWNBwVmfOMDyO2 is missing, auto-provisioning database profile...");
-        const targetProfile = {
-          uid: targetUID,
-          email: "customer-uC4UmVowDjU@gmail.com",
-          fullName: "Customer Operator uC4Um",
-          phoneNumber: "+1 (555) 728-1902",
-          address: "740 Main Street, Core Suite",
-          verificationDoc: "",
-          balance: 31050,
-          role: "user" as const,
-          verificationStatus: "verified" as const,
-          isVerified: true,
-          tradeAction: true
-        };
-        fetch("/api/users/upsert", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(targetProfile)
-        })
-          .then(res => res.json())
-          .then(data => {
-            console.log("Successfully auto-provisioned customer profile:", data);
-          })
-          .catch(err => {
-            console.error("Auto-provision of customer profile failed:", err);
-          });
-      }
-    }
-  }, [hasLoadedUsers, auth.currentUser, users]);
+
 
   const handleUpdateSettings = async () => {
     try {
