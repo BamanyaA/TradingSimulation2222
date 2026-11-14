@@ -11,7 +11,7 @@ interface NavbarProps {
 
 export default function Navbar({ user, profile }: NavbarProps) {
   const navigate = useNavigate();
-  const isAdmin = profile?.role === "admin" || user?.email === "habeshatilaye@gmail.com";
+  const isAdmin = profile?.role === "admin" || user?.email === "girmaeden37@gmail.com";
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -38,7 +38,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          {user?.email === "habeshatilaye@gmail.com" && !profile?.role && (
+          {user?.email === "girmaeden37@gmail.com" && !profile?.role && (
             <span className="text-[10px] bg-yellow-500/10 text-yellow-400 px-2.5 py-1 rounded-full border border-yellow-500/30 font-bold">Syncing Admin...</span>
           )}
           {user ? (

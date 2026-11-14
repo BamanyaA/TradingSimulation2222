@@ -27,7 +27,7 @@ export default function Register() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      const isAdminEmail = user.email === "habeshatilaye@gmail.com";
+      const isAdminEmail = user.email === "girmaeden37@gmail.com";
       try {
         await fetch("/api/users/upsert", {
           method: "POST",
@@ -48,7 +48,7 @@ export default function Register() {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "Registration failed";
       if (errMsg.includes("email-already-in-use") || errMsg.includes("already-in-use") || errMsg.includes("already exists")) {
-        toast.error("Email already in use. Please log in as the administrator (habeshatilaye@gmail.com) first to trigger a deep database sweep and clear registration cache.", { duration: 8000 });
+        toast.error("Email already in use. Please log in as the administrator (girmaeden37@gmail.com) first to trigger a deep database sweep and clear registration cache.", { duration: 8000 });
       } else {
         toast.error(errMsg);
       }

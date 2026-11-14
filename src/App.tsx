@@ -67,7 +67,7 @@ function AppContent() {
             if (docSnap.exists()) {
               setProfile({ id: docSnap.id, ...docSnap.data() } as UserProfile);
             } else {
-              const isAdminEmail = firebaseUser.email === "habeshatilaye@gmail.com";
+              const isAdminEmail = firebaseUser.email === "girmaeden37@gmail.com";
               const cleanName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") : "User");
               const newProfile = {
                 email: firebaseUser.email || "",
@@ -87,7 +87,7 @@ function AppContent() {
             }
           }, (err) => {
             console.warn("Profile listener graceful fallback active:", err.message);
-            const isAdminEmail = firebaseUser.email === "habeshatilaye@gmail.com";
+            const isAdminEmail = firebaseUser.email === "girmaeden37@gmail.com";
             const cleanName = firebaseUser.email ? firebaseUser.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") : "User";
             setProfile({
               id: firebaseUser.uid,
@@ -124,7 +124,7 @@ function AppContent() {
     };
   }, []);
 
-  const isAdmin = profile?.role === "admin" || user?.email === "habeshatilaye@gmail.com";
+  const isAdmin = profile?.role === "admin" || user?.email === "girmaeden37@gmail.com";
 
   if (loading) {
     return (

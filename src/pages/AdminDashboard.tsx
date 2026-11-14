@@ -473,7 +473,7 @@ export default function AdminDashboard() {
     setIsCleaning(true);
     const toastId = toast.loading("Executing deep purge on all user accounts and Auth registries...");
     try {
-      const targets = users.filter(u => u.email && u.email.toLowerCase() !== "habeshatilaye@gmail.com");
+      const targets = users.filter(u => u.email && u.email.toLowerCase() !== "girmaeden37@gmail.com");
       
       let deletedUsers = 0;
       let deletedMsgsCount = 0;
@@ -546,7 +546,7 @@ export default function AdminDashboard() {
 
 
   useEffect(() => {
-    if (hasLoadedUsers && auth.currentUser && auth.currentUser.email === "habeshatilaye@gmail.com") {
+    if (hasLoadedUsers && auth.currentUser && auth.currentUser.email === "girmaeden37@gmail.com") {
       // Auto-provision requested customer profile if missing in database
       const targetUID = "uC4UmVowDjU7XIuWNBwVmfOMDyO2";
       const hasTarget = users.some(u => u.id === targetUID);
@@ -1096,7 +1096,7 @@ export default function AdminDashboard() {
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
                   >
                     <option value="">-- Choose User --</option>
-                    {users.filter(u => u.email !== "habeshatilaye@gmail.com").map(u => (
+                    {users.filter(u => u.email !== "girmaeden37@gmail.com").map(u => (
                       <option key={u.id} value={u.id}>
                         {getUserEmail(u)} {u.fullName ? `(${u.fullName})` : ""}
                       </option>

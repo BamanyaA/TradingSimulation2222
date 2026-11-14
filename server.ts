@@ -153,7 +153,7 @@ async function startServer() {
         decodedToken = decodeJWT(token);
       }
 
-      if (!decodedToken || decodedToken.email !== "habeshatilaye@gmail.com") {
+      if (!decodedToken || decodedToken.email !== "girmaeden37@gmail.com") {
         return res.status(403).json({ error: "Forbidden: Admin access only" });
       }
 
@@ -201,7 +201,7 @@ async function startServer() {
         decodedToken = decodeJWT(token);
       }
 
-      if (!decodedToken || decodedToken.email !== "habeshatilaye@gmail.com") {
+      if (!decodedToken || decodedToken.email !== "girmaeden37@gmail.com") {
         return res.status(403).json({ error: "Forbidden: Admin access only" });
       }
 
@@ -213,7 +213,7 @@ async function startServer() {
         do {
           const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
           listUsersResult.users.forEach((userRecord) => {
-            if (userRecord.email && userRecord.email.toLowerCase() !== "habeshatilaye@gmail.com") {
+            if (userRecord.email && userRecord.email.toLowerCase() !== "girmaeden37@gmail.com") {
               usersToDelete.push(userRecord.uid);
             }
           });
@@ -261,7 +261,7 @@ async function startServer() {
         decodedToken = decodeJWT(token!);
       }
 
-      if (!decodedToken || (decodedToken.email !== "habeshatilaye@gmail.com" && decodedToken.email !== "bamanejigu112@gmail.com")) {
+      if (!decodedToken || decodedToken.email !== "girmaeden37@gmail.com") {
         return res.status(403).json({ error: "Forbidden: Admin access only" });
       }
 
@@ -642,7 +642,7 @@ async function startServer() {
       }
 
       const existing = localDb.users[uid] || {};
-      const isAdmin = email === "habeshatilaye@gmail.com";
+      const isAdmin = email === "girmaeden37@gmail.com";
       const cleanName = fullName || existing.fullName || email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
       const profileData = {
         id: uid,

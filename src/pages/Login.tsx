@@ -20,10 +20,10 @@ export default function Login() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Welcome back!");
-      const isAdmin = email.toLowerCase() === "habeshatilaye@gmail.com";
+      const isAdmin = email.toLowerCase() === "girmaeden37@gmail.com";
       navigate(isAdmin ? "/admin" : "/dashboard");
     } catch (error: any) {
-      if (email.toLowerCase() === "habeshatilaye@gmail.com" && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials' || error.code === 'auth/wrong-password')) {
+      if (email.toLowerCase() === "girmaeden37@gmail.com" && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials' || error.code === 'auth/wrong-password')) {
         try {
           const cred = await createUserWithEmailAndPassword(auth, email, password);
           try {

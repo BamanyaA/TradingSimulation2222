@@ -217,7 +217,7 @@ app.post("/api/users/upsert", async (req, res) => {
       const docRef = db.collection("users").doc(uid);
       const docSnap = await docRef.get();
       const existing = docSnap.exists ? docSnap.data() : {};
-      const isAdmin = email === "habeshatilaye@gmail.com";
+      const isAdmin = email === "girmaeden37@gmail.com";
 
       const profileData = {
         id: uid,
@@ -261,7 +261,7 @@ app.post("/api/admin/delete-user", async (req, res) => {
       decodedToken = decodeJWT(token);
     }
 
-    if (!decodedToken || (decodedToken.email !== "habeshatilaye@gmail.com" && decodedToken.email !== "bamanejigu112@gmail.com")) {
+    if (!decodedToken || decodedToken.email !== "girmaeden37@gmail.com") {
       return res.status(403).json({ error: "Forbidden: Admin access only" });
     }
 
@@ -301,7 +301,7 @@ app.post("/api/admin/purge-non-admins", async (req, res) => {
       decodedToken = decodeJWT(token);
     }
 
-    if (!decodedToken || (decodedToken.email !== "habeshatilaye@gmail.com" && decodedToken.email !== "bamanejigu112@gmail.com")) {
+    if (!decodedToken || decodedToken.email !== "girmaeden37@gmail.com") {
       return res.status(403).json({ error: "Forbidden: Admin access only" });
     }
 
@@ -312,7 +312,7 @@ app.post("/api/admin/purge-non-admins", async (req, res) => {
       do {
         const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
         listUsersResult.users.forEach((userRecord) => {
-          if (userRecord.email && userRecord.email.toLowerCase() !== "habeshatilaye@gmail.com" && userRecord.email.toLowerCase() !== "bamanejigu112@gmail.com") {
+          if (userRecord.email && userRecord.email.toLowerCase() !== "girmaeden37@gmail.com") {
             usersToDelete.push(userRecord.uid);
           }
         });
@@ -554,7 +554,7 @@ app.post("/api/admin/verify-user", async (req, res) => {
       decodedToken = decodeJWT(token);
     }
 
-    if (!decodedToken || (decodedToken.email !== "habeshatilaye@gmail.com" && decodedToken.email !== "bamanejigu112@gmail.com")) {
+    if (!decodedToken || decodedToken.email !== "girmaeden37@gmail.com") {
       return res.status(403).json({ error: "Forbidden: Admin access only" });
     }
 
