@@ -56,7 +56,7 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// List users from Firestore with guaranteed default seeds
+// List users from Firestore
 app.get("/api/admin/list-users", async (req, res) => {
   try {
     let users: any[] = [];
@@ -68,111 +68,7 @@ app.get("/api/admin/list-users", async (req, res) => {
         console.warn("Firestore getUsers error:", e);
       }
     }
-
-    const defaultSeedUsers = [
-      {
-        id: "uC4UmVowDjU7XIuWNBwVmfOMDyO2",
-        email: "customer-uC4UmVowDjU@gmail.com",
-        fullName: "Customer Operator uC4Um",
-        phoneNumber: "+1 (555) 728-1902",
-        address: "740 Main Street, Core Suite",
-        balance: 31050,
-        role: "user",
-        verificationStatus: "verified",
-        isVerified: true,
-        tradeAction: true
-      },
-      {
-        id: "hQ1Q5rrJZfRGJKF1JawYLHQzMid2",
-        email: "yyyyyggggg@gmail.com",
-        fullName: "Yyyyyggggg",
-        balance: 0,
-        role: "user",
-        verificationStatus: "verified",
-        isVerified: true,
-        tradeAction: true
-      },
-      {
-        id: "s8HZY5FL1lSAgYkfzQVDnc17iu1",
-        email: "mm@gmail.com",
-        fullName: "Mm",
-        balance: 1000,
-        role: "user",
-        verificationStatus: "verified",
-        isVerified: true,
-        tradeAction: true
-      },
-      {
-        id: "user_nnnn_1",
-        email: "nnnn@gmail.com",
-        fullName: "Nnnn",
-        balance: 500,
-        role: "user",
-        verificationStatus: "pending",
-        isVerified: false,
-        tradeAction: true
-      },
-      {
-        id: "user_bezat_2",
-        email: "bezat1922@gmail.com",
-        fullName: "Bezat",
-        balance: 2500,
-        role: "user",
-        verificationStatus: "verified",
-        isVerified: true,
-        tradeAction: true
-      },
-      {
-        id: "user_ii_3",
-        email: "ii@gmail.com",
-        fullName: "Ii",
-        balance: 150,
-        role: "user",
-        verificationStatus: "unsubmitted",
-        isVerified: false,
-        tradeAction: true
-      },
-      {
-        id: "user_nn_4",
-        email: "nn@gmail.com",
-        fullName: "Nn",
-        balance: 0,
-        role: "user",
-        verificationStatus: "unsubmitted",
-        isVerified: false,
-        tradeAction: true
-      },
-      {
-        id: "user_zz_5",
-        email: "zz@gmail.com",
-        fullName: "Zz",
-        balance: 0,
-        role: "user",
-        verificationStatus: "unsubmitted",
-        isVerified: false,
-        tradeAction: true
-      },
-      {
-        id: "user_vv_6",
-        email: "vv@gmail.com",
-        fullName: "Vv",
-        balance: 0,
-        role: "user",
-        verificationStatus: "unsubmitted",
-        isVerified: false,
-        tradeAction: true
-      }
-    ];
-
-    const map = new Map();
-    users.forEach(u => map.set(u.email?.toLowerCase() || u.id, u));
-    defaultSeedUsers.forEach(u => {
-      if (!map.has(u.email.toLowerCase())) {
-        map.set(u.email.toLowerCase(), u);
-      }
-    });
-
-    res.json({ users: Array.from(map.values()) });
+    res.json({ users });
   } catch (error) {
     res.json({ users: [] });
   }

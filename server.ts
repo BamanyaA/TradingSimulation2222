@@ -52,22 +52,7 @@ let localDb: {
   support: any[];
   settings: any;
 } = {
-  users: {
-    "uC4UmVowDjU7XIuWNBwVmfOMDyO2": {
-      id: "uC4UmVowDjU7XIuWNBwVmfOMDyO2",
-      email: "customer-uC4UmVowDjU@gmail.com",
-      fullName: "Customer Operator uC4Um",
-      phoneNumber: "+1 (555) 728-1902",
-      address: "740 Main Street, Core Suite",
-      verificationDoc: "",
-      balance: 31050,
-      role: "user",
-      createdAt: new Date(),
-      verificationStatus: "verified",
-      isVerified: true,
-      tradeAction: true
-    }
-  },
+  users: {},
   transactions: [],
   support: [],
   settings: {
