@@ -178,13 +178,18 @@ export default function AdminDashboard() {
       setHasLoadedUsers(true);
     }, (err) => console.warn("users listener suppressed:", err.message));
 
-    // Listen to transactions
-    const txQuery = txFilter === "pending" 
-      ? query(collection(db, "transactions"), where("status", "==", "pending"))
-      : query(collection(db, "transactions"), orderBy("createdAt", "desc"));
-      
-    const txUnsub = onSnapshot(txQuery, (snapshot) => {
-      setPendingTxs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
+    // Listen to transactions (robust in-memory filtering & sorting to avoid index errors)
+    const txUnsub = onSnapshot(collection(db, "transactions"), (snapshot) => {
+      const allTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+      allTxs.sort((a: any, b: any) => {
+        const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+        const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        return timeB - timeA;
+      });
+      const filtered = txFilter === "pending" 
+        ? allTxs.filter(t => t.status === "pending")
+        : allTxs;
+      setPendingTxs(filtered);
     }, (err) => console.warn("transactions listener suppressed:", err.message));
 
     // Fetch settings
@@ -219,9 +224,13 @@ export default function AdminDashboard() {
       let newBalance = 0;
       let success = false;
       try {
+        const token = await auth.currentUser?.getIdToken();
         const res = await fetch("/api/admin/update-balance", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({ userId, amount: Math.abs(delta), mode: delta < 0 ? 'subtract' : 'add' })
         });
         const contentType = res.headers.get("content-type");
@@ -251,9 +260,13 @@ export default function AdminDashboard() {
     try {
       let success = false;
       try {
+        const token = await auth.currentUser?.getIdToken();
         const res = await fetch("/api/admin/update-balance", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({ userId, amount, mode: 'set' })
         });
         const contentType = res.headers.get("content-type");
@@ -312,9 +325,13 @@ export default function AdminDashboard() {
       const newRole = user.role === "admin" ? "user" : "admin";
       let success = false;
       try {
+        const token = await auth.currentUser?.getIdToken();
         const res = await fetch("/api/admin/toggle-role", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({ userId: user.id })
         });
         const contentType = res.headers.get("content-type");
@@ -340,9 +357,13 @@ export default function AdminDashboard() {
       const nextVal = !current;
       let success = false;
       try {
+        const token = await auth.currentUser?.getIdToken();
         const res = await fetch("/api/admin/toggle-trade-action", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({ userId: user.id })
         });
         const contentType = res.headers.get("content-type");

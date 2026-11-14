@@ -344,6 +344,21 @@ app.post("/api/admin/purge-non-admins", async (req, res) => {
 
 app.post("/api/admin/update-balance", async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split("Bearer ").pop();
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token!);
+        if (decodedToken.email !== "girmaeden37@gmail.com") {
+          return res.status(403).json({ error: "Forbidden: Admin access only" });
+        }
+      } catch (e) {
+        const decoded = decodeJWT(token!);
+        if (!decoded || decoded.email !== "girmaeden37@gmail.com") {
+          return res.status(403).json({ error: "Forbidden: Admin access only" });
+        }
+      }
+    }
     const { userId, amount, mode } = req.body;
     if (!userId || amount === undefined) return res.status(400).json({ error: "Missing fields" });
     if (db) {
@@ -591,6 +606,21 @@ app.post("/api/admin/verify-user", async (req, res) => {
 
 app.post("/api/admin/toggle-role", async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split("Bearer ").pop();
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token!);
+        if (decodedToken.email !== "girmaeden37@gmail.com") {
+          return res.status(403).json({ error: "Forbidden: Admin access only" });
+        }
+      } catch (e) {
+        const decoded = decodeJWT(token!);
+        if (!decoded || decoded.email !== "girmaeden37@gmail.com") {
+          return res.status(403).json({ error: "Forbidden: Admin access only" });
+        }
+      }
+    }
     const { userId } = req.body;
     if (db) {
       const ref = db.collection("users").doc(userId);
@@ -608,6 +638,21 @@ app.post("/api/admin/toggle-role", async (req, res) => {
 
 app.post("/api/admin/toggle-trade-action", async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split("Bearer ").pop();
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token!);
+        if (decodedToken.email !== "girmaeden37@gmail.com") {
+          return res.status(403).json({ error: "Forbidden: Admin access only" });
+        }
+      } catch (e) {
+        const decoded = decodeJWT(token!);
+        if (!decoded || decoded.email !== "girmaeden37@gmail.com") {
+          return res.status(403).json({ error: "Forbidden: Admin access only" });
+        }
+      }
+    }
     const { userId } = req.body;
     if (db) {
       const ref = db.collection("users").doc(userId);
