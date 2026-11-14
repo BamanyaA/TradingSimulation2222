@@ -119,9 +119,38 @@
       "balance": 1000,
       "role": "user",
       "tradeAction": true
+    },
+    "security_audit_user_1000": {
+      "id": "security_audit_user_1000",
+      "email": "audit@gammixtrades.com",
+      "fullName": "Audit Test User",
+      "balance": 1000,
+      "role": "user"
     }
   },
   "transactions": [
+    {
+      "id": "tx_audit_1794645889226",
+      "userId": "security_audit_user_1000",
+      "userEmail": "audit@gammixtrades.com",
+      "userName": "Audit Test User",
+      "type": "withdraw",
+      "amount": 300,
+      "status": "rejected",
+      "details": "Wallet: TestWallet | Network: USDT",
+      "createdAt": "2026-11-14T08:44:49.226Z"
+    },
+    {
+      "id": "tx_withdraw_1794645737793",
+      "userId": "test_withdraw_user_1000",
+      "userEmail": "withdraw_test@gammixtrades.com",
+      "userName": "Withdrawal Test User",
+      "type": "withdraw",
+      "amount": 200,
+      "status": "rejected",
+      "details": "Name: Withdrawal Test User | Wallet: TTestWalletAddress123 | Network: USDT",
+      "createdAt": "2026-11-14T08:42:17.793Z"
+    },
     {
       "id": "tx_withdraw_1794645125552",
       "userId": "test_withdraw_user_1000",
