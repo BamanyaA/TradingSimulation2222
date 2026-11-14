@@ -148,44 +148,12 @@ export default function AdminDashboard() {
 
 
   useEffect(() => {
-    // Listen to users
+    // Listen to users from Firestore (Single Source of Truth)
     const usersUnsub = onSnapshot(collection(db, "users"), (snapshot) => {
       const fsUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-      setUsers(prev => {
-        const map = new Map();
-        // keep preseeded and existing
-        prev.forEach(u => map.set(u.id, u));
-        fsUsers.forEach(u => map.set(u.id, u));
-        return Array.from(map.values());
-      });
+      setUsers(fsUsers);
       setHasLoadedUsers(true);
     }, (err) => console.warn("users listener suppressed:", err.message));
-
-    // Fetch auth users
-    const fetchAuthUsers = async () => {
-      try {
-        const res = await fetch("/api/admin/list-users");
-        const contentType = res.headers.get("content-type");
-        if (res.ok && contentType && contentType.includes("application/json")) {
-          const data = await res.json();
-          if (data.users && Array.isArray(data.users)) {
-            setUsers(prevUsers => {
-              const map = new Map();
-              prevUsers.forEach(u => map.set(u.id, u));
-              data.users.forEach((u: UserProfile) => {
-                if (!map.has(u.id)) {
-                  map.set(u.id, u);
-                }
-              });
-              return Array.from(map.values());
-            });
-          }
-        }
-      } catch (e) {
-        console.warn("Auth users fetch failed:", e);
-      }
-    };
-    fetchAuthUsers();
 
     // Listen to transactions
     const txQuery = txFilter === "pending" 
@@ -579,13 +547,13 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (hasLoadedUsers && auth.currentUser && auth.currentUser.email === "habeshatilaye@gmail.com") {
-      
-      // Auto-provision requested customer profile if missing in Firestore database
+      // Auto-provision requested customer profile if missing in database
       const targetUID = "uC4UmVowDjU7XIuWNBwVmfOMDyO2";
       const hasTarget = users.some(u => u.id === targetUID);
       if (!hasTarget) {
         console.log("UID uC4UmVowDjU7XIuWNBwVmfOMDyO2 is missing, auto-provisioning database profile...");
         const targetProfile = {
+          uid: targetUID,
           email: "customer-uC4UmVowDjU@gmail.com",
           fullName: "Customer Operator uC4Um",
           phoneNumber: "+1 (555) 728-1902",
@@ -593,14 +561,18 @@ export default function AdminDashboard() {
           verificationDoc: "",
           balance: 31050,
           role: "user" as const,
-          createdAt: new Date(),
           verificationStatus: "verified" as const,
           isVerified: true,
           tradeAction: true
         };
-        setDoc(doc(db, "users", targetUID), targetProfile)
-          .then(() => {
-            console.log("Successfully auto-provisioned customer profile!");
+        fetch("/api/users/upsert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(targetProfile)
+        })
+          .then(res => res.json())
+          .then(data => {
+            console.log("Successfully auto-provisioned customer profile:", data);
           })
           .catch(err => {
             console.error("Auto-provision of customer profile failed:", err);

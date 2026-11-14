@@ -24,20 +24,13 @@ service cloud.firestore {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow list: if isAdmin();
       
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && (isOwner(userId) || isAdmin());
 
       allow update: if isAdmin() || (
         isOwner(userId) &&
-        // Prevent ordinary users from modifying role, balance, or tradeAction
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'balance', 'tradeAction'])) &&
-        // Allow updating verificationStatus to "pending" and isVerified to false (KYC submission), but forbid setting verified or rejected
-        (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'isVerified']) ||
-          (
-            request.resource.data.verificationStatus == "pending" &&
-            request.resource.data.isVerified == false
-          )
-        )
+        request.resource.data.balance == resource.data.balance &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.tradeAction == resource.data.tradeAction
       );
 
       allow delete: if isAdmin();
