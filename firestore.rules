@@ -3,66 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for authentication and authorization
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == "girmaeden37@gmail.com" ||
-        request.auth.uid == "girmaeden37@gmail.com" ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == "girmaeden37@gmail.com")
-      );
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // 1. Users Collection
     match /users/{userId} {
-      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
-      allow list: if isSignedIn();
-      
-      allow create: if isSignedIn() && (
-        request.auth.token.email == "girmaeden37@gmail.com" ||
-        request.auth.uid == "girmaeden37@gmail.com" ||
-        isOwner(userId) ||
-        isAdmin()
-      );
-
-      allow update: if isSignedIn() && (
-        isAdmin() ||
-        request.auth.token.email == "girmaeden37@gmail.com" ||
-        request.auth.uid == "girmaeden37@gmail.com" ||
-        isOwner(userId)
-      );
-
-      allow delete: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
+      allow read, write: if request.auth != null;
     }
 
-    // 2. Transactions Collection
     match /transactions/{transactionId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
+      allow read, write: if request.auth != null;
     }
 
-    // 3. Support Messages Collection
     match /support_messages/{messageId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
+      allow read, write: if request.auth != null;
     }
 
-    // 4. Settings Collection
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin() || request.auth.token.email == "girmaeden37@gmail.com";
+      allow write: if request.auth != null;
     }
   }
 }
