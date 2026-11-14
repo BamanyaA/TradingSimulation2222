@@ -111,9 +111,28 @@
       "verificationStatus": "unsubmitted",
       "isVerified": false,
       "tradeAction": true
+    },
+    "test_withdraw_user_1000": {
+      "id": "test_withdraw_user_1000",
+      "email": "withdraw_test@gammixtrades.com",
+      "fullName": "Withdrawal Test User",
+      "balance": 1000,
+      "role": "user",
+      "tradeAction": true
     }
   },
   "transactions": [
+    {
+      "id": "tx_withdraw_1794645125552",
+      "userId": "test_withdraw_user_1000",
+      "userEmail": "withdraw_test@gammixtrades.com",
+      "userName": "Withdrawal Test User",
+      "type": "withdraw",
+      "amount": 200,
+      "status": "rejected",
+      "details": "Name: Withdrawal Test User | Wallet: TTestWalletAddress123 | Network: USDT",
+      "createdAt": "2026-11-14T08:32:05.552Z"
+    },
     {
       "id": "tx_bq6m74ltrlk",
       "tradeId": "tr_test_loss_1794644318036",
