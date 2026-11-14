@@ -38,6 +38,8 @@ export default function Register() {
           body: JSON.stringify({
             uid: user.uid,
             email: user.email,
+            fullName: user.email?.split("@")[0] || "User",
+            phoneNumber: "",
             role: isAdminEmail ? "admin" : "user",
             balance: isAdminEmail ? 31050 : 0
           })
@@ -46,12 +48,15 @@ export default function Register() {
         console.warn("Server upsert profile warning:", upsertErr);
       }
 
-      // Guaranteed client-side Firestore profile fallback
+      // Guaranteed client-side Firestore profile fallback matching exact document structure
       try {
         await setDoc(doc(db, "users", user.uid), {
           id: user.uid,
+          uid: user.uid,
           email: user.email,
           fullName: user.email?.split("@")[0] || "User",
+          phoneNumber: "",
+          address: "",
           balance: isAdminEmail ? 31050 : 0,
           role: isAdminEmail ? "admin" : "user",
           verificationStatus: isAdminEmail ? "verified" : "unsubmitted",

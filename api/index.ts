@@ -145,10 +145,11 @@ app.post("/api/users/upsert", async (req, res) => {
 
       const profileData = {
         id: uid,
+        uid: uid,
         email,
         fullName: fullName || existing?.fullName || email.split("@")[0].replace(/[^a-zA-Z0-9]/g, ""),
+        phoneNumber: req.body.phoneNumber || existing?.phoneNumber || "",
         address: existing?.address || "",
-        phoneNumber: existing?.phoneNumber || "",
         verificationDoc: existing?.verificationDoc || null,
         balance: (existing?.balance !== undefined) ? existing.balance : (balance !== undefined ? balance : (isAdmin ? 31050 : 0)),
         role: role || existing?.role || (isAdmin ? "admin" : "user"),

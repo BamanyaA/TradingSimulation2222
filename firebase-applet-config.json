@@ -1,9 +1,9 @@
 {
   "apiKey": "AIzaSyCn41dYYrTXcSEcWcRTaXaZyrGiGEWy3yo",
-  "authDomain": "gammixtrades.firebaseapp.com",
-  "projectId": "gammixtrades",
+  "authDomain": "gen-lang-client-0295495703.firebaseapp.com",
+  "projectId": "gen-lang-client-0295495703",
   "firestoreDatabaseId": "(default)",
-  "storageBucket": "gammixtrades.firebasestorage.app",
+  "storageBucket": "gen-lang-client-0295495703.firebasestorage.app",
   "messagingSenderId": "1013537402788",
   "appId": "1:1013537402788:web:27175f8a2eec769a661b31",
   "measurementId": "G-CS6SYYTRKW"
