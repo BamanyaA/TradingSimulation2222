@@ -349,15 +349,14 @@ app.post("/api/admin/update-balance", async (req, res) => {
     if (db) {
       const docRef = db.collection("users").doc(userId);
       const docSnap = await docRef.get();
-      if (!docSnap.exists) return res.status(404).json({ error: "User not found" });
-      const current = docSnap.data()?.balance || 0;
+      const current = docSnap.exists ? (docSnap.data()?.balance || 0) : 0;
       let newBalance = current;
       if (mode === 'add') newBalance += Number(amount);
       else if (mode === 'subtract') newBalance -= Number(amount);
       else if (mode === 'set') newBalance = Number(amount);
 
       newBalance = Math.max(0, newBalance);
-      await docRef.update({ balance: newBalance });
+      await docRef.set({ balance: newBalance }, { merge: true });
       return res.json({ success: true, balance: newBalance });
     }
     res.status(500).json({ error: "Database unavailable" });
@@ -567,13 +566,20 @@ app.post("/api/admin/verify-user", async (req, res) => {
       const userRef = db.collection("users").doc(userId);
       const userSnap = await userRef.get();
       if (!userSnap.exists) {
-        return res.status(404).json({ error: "User not found" });
+        await userRef.set({
+          id: userId,
+          email: userId + "@gammixtrades.com",
+          fullName: "User",
+          balance: 0,
+          verificationStatus: status,
+          isVerified: status === "verified"
+        }, { merge: true });
+      } else {
+        await userRef.update({
+          verificationStatus: status,
+          isVerified: status === "verified"
+        });
       }
-
-      await userRef.update({
-        verificationStatus: status,
-        isVerified: status === "verified"
-      });
       return res.json({ success: true, status });
     }
     res.status(500).json({ error: "Database unavailable" });
@@ -589,10 +595,9 @@ app.post("/api/admin/toggle-role", async (req, res) => {
     if (db) {
       const ref = db.collection("users").doc(userId);
       const snap = await ref.get();
-      if (!snap.exists) return res.status(404).json({ error: "User not found" });
-      const currentRole = snap.data()?.role || "user";
+      const currentRole = snap.exists ? (snap.data()?.role || "user") : "user";
       const newRole = currentRole === "admin" ? "user" : "admin";
-      await ref.update({ role: newRole });
+      await ref.set({ role: newRole }, { merge: true });
       return res.json({ success: true, role: newRole });
     }
     res.status(500).json({ error: "Database unavailable" });
@@ -607,10 +612,9 @@ app.post("/api/admin/toggle-trade-action", async (req, res) => {
     if (db) {
       const ref = db.collection("users").doc(userId);
       const snap = await ref.get();
-      if (!snap.exists) return res.status(404).json({ error: "User non-existent" });
-      const current = snap.data()?.tradeAction;
+      const current = snap.exists ? snap.data()?.tradeAction : true;
       const nextVal = current === undefined ? false : !current;
-      await ref.update({ tradeAction: nextVal });
+      await ref.set({ tradeAction: nextVal }, { merge: true });
       return res.json({ success: true, tradeAction: nextVal });
     }
     res.status(500).json({ error: "Database unavailable" });
