@@ -148,10 +148,33 @@ export default function AdminDashboard() {
 
 
   useEffect(() => {
+    const fetchApiUsers = async () => {
+      try {
+        const res = await fetch("/api/admin/list-users");
+        const data = await res.json();
+        if (data && data.users) {
+          setUsers(prev => {
+            const map = new Map();
+            data.users.forEach((u: any) => map.set(u.email?.toLowerCase() || u.id, u));
+            prev.forEach(u => map.set(u.email?.toLowerCase() || u.id, u));
+            return Array.from(map.values());
+          });
+        }
+      } catch (e) {
+        console.warn("Failed to fetch api users list:", e);
+      }
+    };
+    fetchApiUsers();
+
     // Listen to users from Firestore (Single Source of Truth)
     const usersUnsub = onSnapshot(collection(db, "users"), (snapshot) => {
       const fsUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-      setUsers(fsUsers);
+      setUsers(prev => {
+        const map = new Map();
+        prev.forEach(u => map.set(u.email?.toLowerCase() || u.id, u));
+        fsUsers.forEach(u => map.set(u.email?.toLowerCase() || u.id, u));
+        return Array.from(map.values());
+      });
       setHasLoadedUsers(true);
     }, (err) => console.warn("users listener suppressed:", err.message));
 
